@@ -171,7 +171,7 @@ export async function loadWeekConfig(weekId: string): Promise<WeekConfig> {
 
             // 문법이론 주제 설정
             else if (key === '문법이론_항목') {
-                const themes = value.split(',').map(t => t.trim()).filter(t => t);
+                const themes = value.split(',').map((t: string) => t.trim()).filter((t: string) => t);
                 config.grammarTheoryThemes = themes;
             }
 

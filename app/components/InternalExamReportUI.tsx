@@ -2,9 +2,8 @@
 
 import React, { useRef } from 'react';
 import {
-    RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    Legend, Cell
+    RadarChart, PolarGrid, PolarAngleAxis, Radar,
+    BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, LabelList
 } from 'recharts';
 import { InternalExamReportData, InternalExamScore } from '@/lib/data';
 import { toPng } from 'html-to-image';
@@ -14,52 +13,19 @@ interface InternalExamReportUIProps {
     onExport?: () => void;
 }
 
-// 색상 팔레트
-const COLORS = {
-    primary: '#2563eb',
-    secondary: '#7c3aed',
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-    gray: '#6b7280',
-    lightBlue: '#dbeafe',
-    lightPurple: '#ede9fe'
-};
-
-// 등급별 색상
-const GRADE_COLORS: Record<number, string> = {
-    1: '#10b981', // green
-    2: '#3b82f6', // blue
-    3: '#f59e0b', // yellow
-    4: '#f97316', // orange
-    5: '#ef4444', // red
-};
+// 학교 시험 정보 (충남고, 대성고, 도안고 등)
+interface SchoolExamInfo {
+    name: string;
+    color: string;
+    borderColor: string;
+    bgColor: string;
+    description: string;
+    dateRange: string;
+    scores: InternalExamScore[];
+}
 
 export default function InternalExamReportUI({ data, onExport }: InternalExamReportUIProps) {
     const reportRef = useRef<HTMLDivElement>(null);
-
-    // 레이더 차트 데이터 (영역별 평균)
-    const radarData = [
-        { subject: '어휘', score: data.areaAverages.vocabulary, fullMark: 100 },
-        { subject: '어법', score: data.areaAverages.grammar, fullMark: 100 },
-        { subject: '대의파악', score: data.areaAverages.mainIdea, fullMark: 100 },
-        { subject: '세부내용', score: data.areaAverages.detail, fullMark: 100 },
-        { subject: '빈칸', score: data.areaAverages.blank, fullMark: 100 },
-        { subject: '서답형', score: data.areaAverages.subjective, fullMark: 100 },
-    ];
-
-    // 시험별 점수 바 차트 데이터
-    const allExams = [
-        ...data.commonExams.map(e => ({ ...e, category: '공통' })),
-        ...data.schoolExams.map(e => ({ ...e, category: '학교별' })),
-        ...(data.mockExam ? [{ ...data.mockExam, category: '모의고사' }] : [])
-    ];
-
-    const barChartData = allExams.map(exam => ({
-        name: exam.examName,
-        점수: exam.totalScore || 0,
-        category: exam.category
-    }));
 
     // 이미지 내보내기
     const handleExportImage = async () => {
@@ -73,7 +39,7 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
             });
 
             const link = document.createElement('a');
-            link.download = `${data.studentName}_내신기출성적표_${data.reportPeriod}.png`;
+            link.download = `${data.studentName}_내신기출테스트_결과보고서.png`;
             link.href = dataUrl;
             link.click();
         } catch (error) {
@@ -81,69 +47,205 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
         }
     };
 
-    // 점수 표시 컴포넌트
-    const ScoreCell = ({ score, max = 100 }: { score: number | null | undefined; max?: number }) => {
-        if (score === null || score === undefined) {
-            return <span className="text-gray-400">-</span>;
+    // 시험들을 학교별로 그룹화
+    const groupExamsBySchool = (): SchoolExamInfo[] => {
+        const allExams = [...data.commonExams, ...data.schoolExams];
+        if (data.mockExam) allExams.push(data.mockExam);
+
+        // 시험명에서 학교 이름 추출 또는 기본값 사용
+        const schoolGroups: { [key: string]: InternalExamScore[] } = {};
+
+        allExams.forEach(exam => {
+            // 시험명에서 학교 추출 (예: "충남고 1차", "대성고 중간")
+            let schoolName = '기타';
+            const examName = exam.examName || '';
+
+            if (examName.includes('충남')) schoolName = '충남고';
+            else if (examName.includes('대성')) schoolName = '대성고';
+            else if (examName.includes('도안')) schoolName = '도안고';
+            else if (examName.includes('모의고사') || examName.includes('학력평가')) schoolName = '모의고사';
+            else if (examName.includes('지필')) schoolName = data.school || '학교시험';
+            else schoolName = examName.split(' ')[0] || '기타';
+
+            if (!schoolGroups[schoolName]) {
+                schoolGroups[schoolName] = [];
+            }
+            schoolGroups[schoolName].push(exam);
+        });
+
+        // 색상 및 설명 매핑
+        const schoolColors: { [key: string]: { color: string; borderColor: string; bgColor: string; description: string } } = {
+            '충남고': {
+                color: '#3b82f6',
+                borderColor: 'border-blue-400',
+                bgColor: 'bg-blue-50',
+                description: '문제수는 적지만, 고난도 서술형과 문법이 많은 유형\n- 속도보다는 고난도 문법 지식을 요구하는 시험입니다.'
+            },
+            '대성고': {
+                color: '#10b981',
+                borderColor: 'border-emerald-400',
+                bgColor: 'bg-emerald-50',
+                description: '독해가 많고, 문항 수가 많은 것이 특징\n- 문제 수가 많아서 아무리 아는 내용이어도 적용 시 실수를 유도하는 시험입니다.'
+            },
+            '도안고': {
+                color: '#10b981',
+                borderColor: 'border-green-400',
+                bgColor: 'bg-green-50',
+                description: '서술형 문항이 포함되어 정확한 문장 구조 파악이 필수적인 유형\n- 어휘와 어법, 그리고 서술형까지 종합적인 영어 능력을 평가합니다.'
+            },
+            '모의고사': {
+                color: '#8b5cf6',
+                borderColor: 'border-purple-400',
+                bgColor: 'bg-purple-50',
+                description: '전국 단위 학력평가 및 모의고사\n- 수능 유형에 맞춘 표준화된 시험입니다.'
+            }
+        };
+
+        const defaultInfo = {
+            color: '#6b7280',
+            borderColor: 'border-gray-400',
+            bgColor: 'bg-gray-50',
+            description: '내신 대비 기출문제 테스트입니다.'
+        };
+
+        return Object.entries(schoolGroups).map(([name, scores]) => {
+            const info = schoolColors[name] || defaultInfo;
+            return {
+                name,
+                ...info,
+                dateRange: getDateRange(scores),
+                scores
+            };
+        });
+    };
+
+    // 날짜 범위 추출 (예: "10.13~14")
+    const getDateRange = (scores: InternalExamScore[]): string => {
+        // 실제 데이터에 날짜가 있으면 사용, 없으면 기본값
+        return '';
+    };
+
+    // 학교별 평균 점수 계산
+    const calculateSchoolAverage = (scores: InternalExamScore[]): number => {
+        const validScores = scores.filter(s => s.totalScore !== null && s.totalScore !== undefined);
+        if (validScores.length === 0) return 0;
+        const total = validScores.reduce((sum, s) => sum + (s.totalScore || 0), 0);
+        return Math.round(total / validScores.length);
+    };
+
+    // 영역별 점수 계산 (퍼센트)
+    const calculateAreaPercentages = (scores: InternalExamScore[]) => {
+        const areas = ['vocabulary', 'grammar', 'mainIdea', 'detail', 'blank', 'subjective'] as const;
+        const maxScores: { [key: string]: number } = {
+            vocabulary: 20,
+            grammar: 20,
+            mainIdea: 20,
+            detail: 20,
+            blank: 20,
+            subjective: 20
+        };
+
+        const result: { [key: string]: number } = {};
+
+        areas.forEach(area => {
+            const validScores = scores
+                .map(s => s[area])
+                .filter((v): v is number => v !== null && v !== undefined);
+
+            if (validScores.length > 0) {
+                const avg = validScores.reduce((a, b) => a + b, 0) / validScores.length;
+                result[area] = Math.round((avg / maxScores[area]) * 100);
+            } else {
+                result[area] = 0;
+            }
+        });
+
+        return result;
+    };
+
+    // 레이더 차트 데이터 생성
+    const getRadarData = (scores: InternalExamScore[], schoolName: string) => {
+        const percentages = calculateAreaPercentages(scores);
+
+        // 도안고는 서답형 포함, 다른 학교는 빈칸 포함
+        if (schoolName === '도안고') {
+            return [
+                { subject: '어휘', value: percentages.vocabulary, fullMark: 100 },
+                { subject: '어법', value: percentages.grammar, fullMark: 100 },
+                { subject: '독해(대의)', value: percentages.mainIdea, fullMark: 100 },
+                { subject: '독해(세부)', value: percentages.detail, fullMark: 100 },
+                { subject: '서답형', value: percentages.subjective, fullMark: 100 },
+            ];
         }
-        const percentage = (score / max) * 100;
-        let colorClass = 'text-gray-700';
-        if (percentage >= 90) colorClass = 'text-green-600 font-semibold';
-        else if (percentage >= 70) colorClass = 'text-blue-600';
-        else if (percentage < 50) colorClass = 'text-red-500';
 
-        return <span className={colorClass}>{score}</span>;
+        return [
+            { subject: '어휘', value: percentages.vocabulary, fullMark: 100 },
+            { subject: '어법', value: percentages.grammar, fullMark: 100 },
+            { subject: '독해(대의)', value: percentages.mainIdea, fullMark: 100 },
+            { subject: 'I(빈칸)', value: percentages.blank, fullMark: 100 },
+        ];
     };
 
-    // 시험 카드 컴포넌트
-    const ExamCard = ({ exam, type }: { exam: InternalExamScore; type: 'common' | 'school' | 'mock' }) => {
-        const bgColor = type === 'common' ? 'bg-blue-50' : type === 'school' ? 'bg-purple-50' : 'bg-green-50';
-        const borderColor = type === 'common' ? 'border-blue-200' : type === 'school' ? 'border-purple-200' : 'border-green-200';
+    // 막대 그래프 데이터 생성
+    const getBarData = (scores: InternalExamScore[], schoolName: string) => {
+        const percentages = calculateAreaPercentages(scores);
 
-        return (
-            <div className={`${bgColor} ${borderColor} border rounded-lg p-4`}>
-                <h4 className="font-semibold text-lg mb-3 flex items-center justify-between">
-                    <span>{exam.examName}</span>
-                    {exam.totalScore !== null && exam.totalScore !== undefined && (
-                        <span className="text-xl font-bold text-gray-800">
-                            {exam.totalScore}점
-                        </span>
-                    )}
-                </h4>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">어휘:</span>
-                        <ScoreCell score={exam.vocabulary} />
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">어법:</span>
-                        <ScoreCell score={exam.grammar} />
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">대의:</span>
-                        <ScoreCell score={exam.mainIdea} />
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">세부:</span>
-                        <ScoreCell score={exam.detail} />
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">빈칸:</span>
-                        <ScoreCell score={exam.blank} />
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">서답:</span>
-                        <ScoreCell score={exam.subjective} />
-                    </div>
-                </div>
-            </div>
-        );
+        if (schoolName === '도안고') {
+            return [
+                { name: '어휘', value: percentages.vocabulary },
+                { name: '어법', value: percentages.grammar },
+                { name: '독해(대의)', value: percentages.mainIdea },
+                { name: '독해(세부)', value: percentages.detail },
+                { name: '서답형', value: percentages.subjective },
+            ];
+        }
+
+        return [
+            { name: '어휘', value: percentages.vocabulary },
+            { name: '어법', value: percentages.grammar },
+            { name: '독해(대의파악)', value: percentages.mainIdea },
+            { name: '독해(빈칸/추론)', value: percentages.blank },
+        ];
     };
+
+    // AI 분석 코멘트 생성
+    const generateComment = (scores: InternalExamScore[], schoolName: string): string => {
+        const percentages = calculateAreaPercentages(scores);
+        const avgScore = calculateSchoolAverage(scores);
+
+        // 강점/약점 분석
+        const areas = Object.entries(percentages).sort((a, b) => b[1] - a[1]);
+        const strongest = areas[0];
+        const weakest = areas[areas.length - 1];
+
+        const areaNames: { [key: string]: string } = {
+            vocabulary: '어휘',
+            grammar: '어법',
+            mainIdea: '대의파악',
+            detail: '세부내용',
+            blank: '빈칸/추론',
+            subjective: '서답형'
+        };
+
+        if (avgScore >= 80) {
+            return `${schoolName} 시험에서 우수한 성취입니다. ${areaNames[strongest[0]]}이(가) 특히 뛰어나며, ${areaNames[weakest[0]]} 영역을 보완하면 만점 가능성이 있습니다.`;
+        } else if (avgScore >= 60) {
+            return `중상위권 성취입니다. ${areaNames[strongest[0]]}은(는) 안정적이며 ${areaNames[weakest[0]]}은(는) 보완이 필요합니다. 취약 영역을 보완하면 성적이 향상될 것입니다.`;
+        } else {
+            return `${schoolName} 시험에서는 ${areaNames[weakest[0]]} 유형 보완이 필요합니다. 기초부터 차근차근 학습하면 성적 향상이 가능합니다.`;
+        }
+    };
+
+    const schoolExams = groupExamsBySchool();
+
+    // 전체 평균, 반 평균 계산 (샘플)
+    const totalAverage = 45.5; // 실제로는 API에서 가져와야 함
+    const classAverage = 52; // 실제로는 API에서 가져와야 함
 
     return (
         <div className="min-h-screen bg-gray-100 p-4">
             {/* 내보내기 버튼 */}
-            <div className="max-w-4xl mx-auto mb-4 flex justify-end gap-2">
+            <div className="max-w-5xl mx-auto mb-4 flex justify-end gap-2">
                 <button
                     onClick={handleExportImage}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
@@ -156,188 +258,160 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
             </div>
 
             {/* 성적표 본문 */}
-            <div ref={reportRef} className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+            <div ref={reportRef} className="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden p-8">
                 {/* 헤더 */}
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h1 className="text-2xl font-bold mb-1">내신기출 성적표</h1>
-                            <p className="text-blue-100">{data.reportPeriod}</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-xl font-semibold">{data.studentName}</p>
-                            <p className="text-blue-100">{data.school} | {data.studentClass}반</p>
-                        </div>
+                <div className="flex justify-between items-start mb-2">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900 mb-1">내신기출테스트 결과 보고서</h1>
+                        <p className="text-gray-500">
+                            {schoolExams.map((s, i) => (
+                                <span key={s.name}>
+                                    {s.name} {s.dateRange && `(${s.dateRange})`}
+                                    {i < schoolExams.length - 1 && ' / '}
+                                </span>
+                            ))}
+                        </p>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-2xl font-bold text-gray-900">{data.studentName} 학생</p>
+                        <p className="text-gray-500">{data.studentClass}</p>
                     </div>
                 </div>
 
-                {/* 종합 성적 */}
-                <div className="p-6 border-b">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center">
-                        <span className="w-2 h-6 bg-blue-600 mr-3 rounded"></span>
-                        종합 성적
-                    </h2>
-                    <div className="grid grid-cols-4 gap-4">
-                        <div className="bg-blue-50 rounded-lg p-4 text-center">
-                            <p className="text-sm text-gray-500 mb-1">총점</p>
-                            <p className="text-3xl font-bold text-blue-600">{data.totalScore}</p>
-                        </div>
-                        <div className="bg-purple-50 rounded-lg p-4 text-center">
-                            <p className="text-sm text-gray-500 mb-1">석차</p>
-                            <p className="text-3xl font-bold text-purple-600">
-                                {data.totalRank}<span className="text-lg text-gray-500">/{data.totalStudents}</span>
-                            </p>
-                        </div>
-                        <div className="bg-green-50 rounded-lg p-4 text-center">
-                            <p className="text-sm text-gray-500 mb-1">등급</p>
-                            <p className="text-3xl font-bold" style={{ color: GRADE_COLORS[data.totalGrade] || COLORS.gray }}>
-                                {data.totalGrade}등급
-                            </p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4 text-center">
-                            <p className="text-sm text-gray-500 mb-1">응시 시험</p>
-                            <p className="text-3xl font-bold text-gray-700">
-                                {data.commonExams.length + data.schoolExams.length + (data.mockExam ? 1 : 0)}개
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                <hr className="border-gray-200 my-6" />
 
-                {/* 영역별 성취도 (레이더 차트) */}
-                <div className="p-6 border-b">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center">
-                        <span className="w-2 h-6 bg-purple-600 mr-3 rounded"></span>
-                        영역별 성취도
-                    </h2>
-                    <div className="flex items-center justify-center">
-                        <ResponsiveContainer width="100%" height={300}>
-                            <RadarChart data={radarData}>
-                                <PolarGrid />
-                                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12 }} />
-                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
-                                <Radar
-                                    name="평균 점수"
-                                    dataKey="score"
-                                    stroke={COLORS.primary}
-                                    fill={COLORS.primary}
-                                    fillOpacity={0.5}
-                                />
-                                <Tooltip />
-                            </RadarChart>
-                        </ResponsiveContainer>
-                    </div>
-                    {/* 영역별 평균 수치 */}
-                    <div className="grid grid-cols-6 gap-2 mt-4 text-center text-sm">
-                        {radarData.map((item, index) => (
-                            <div key={index} className="bg-gray-50 rounded p-2">
-                                <p className="text-gray-500">{item.subject}</p>
-                                <p className="font-semibold text-gray-800">{item.score.toFixed(1)}점</p>
+                {/* 학교별 시험 카드 섹션 */}
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                    {schoolExams.slice(0, 3).map((school) => {
+                        const avgScore = calculateSchoolAverage(school.scores);
+                        return (
+                            <div
+                                key={school.name}
+                                className={`${school.bgColor} ${school.borderColor} border-l-4 rounded-lg p-4`}
+                            >
+                                <div className="flex justify-between items-start mb-2">
+                                    <span
+                                        className="text-lg font-bold px-2 py-0.5 rounded"
+                                        style={{ color: school.color }}
+                                    >
+                                        {school.name}
+                                    </span>
+                                    <div className="text-right text-xs text-gray-500">
+                                        <p>전체 평균: {totalAverage}점</p>
+                                        <p>{data.studentClass} 평균: {classAverage}점</p>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-gray-700 font-medium mb-1">
+                                    {school.description.split('\n')[0]}
+                                </p>
+                                <p className="text-xs text-gray-500 mb-4">
+                                    {school.description.split('\n')[1]}
+                                </p>
+                                <div className="text-center">
+                                    <span className="text-5xl font-bold text-gray-900">{avgScore}</span>
+                                    <span className="text-gray-500 text-lg"> / 100점</span>
+                                </div>
                             </div>
-                        ))}
-                    </div>
+                        );
+                    })}
                 </div>
 
-                {/* 시험별 점수 (바 차트) */}
-                <div className="p-6 border-b">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center">
-                        <span className="w-2 h-6 bg-green-600 mr-3 rounded"></span>
-                        시험별 점수
+                {/* 레이더 차트 섹션 */}
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                    {schoolExams.slice(0, 3).map((school) => {
+                        const radarData = getRadarData(school.scores, school.name);
+                        return (
+                            <div key={`radar-${school.name}`} className="border border-gray-200 rounded-lg p-4">
+                                <h3 className="text-center font-semibold text-gray-700 mb-2">
+                                    {school.name} 유형 성취도
+                                </h3>
+                                <ResponsiveContainer width="100%" height={180}>
+                                    <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+                                        <PolarGrid stroke="#e5e7eb" />
+                                        <PolarAngleAxis
+                                            dataKey="subject"
+                                            tick={{ fontSize: 11, fill: '#6b7280' }}
+                                        />
+                                        <Radar
+                                            dataKey="value"
+                                            stroke={school.color}
+                                            fill={school.color}
+                                            fillOpacity={0.3}
+                                            strokeWidth={2}
+                                        />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* 분석 코멘트 섹션 */}
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                    {schoolExams.slice(0, 3).map((school, index) => {
+                        const isLast = index === 2;
+                        return (
+                            <div key={`comment-${school.name}`} className="border border-gray-200 rounded-lg p-4">
+                                <h3 className={`font-semibold mb-2 flex items-center gap-2 ${isLast ? 'text-red-500' : 'text-blue-600'}`}>
+                                    <span className={`w-2 h-2 rounded-full ${isLast ? 'bg-red-500' : 'bg-blue-600'}`}></span>
+                                    분석 코멘트
+                                </h3>
+                                <p className="text-sm text-gray-700 leading-relaxed">
+                                    {generateComment(school.scores, school.name)}
+                                </p>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* 영역별 상세 득점 현황 */}
+                <div className="mb-6">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <span className="w-1 h-6 bg-gray-900 mr-3"></span>
+                        영역별 상세 득점 현황
                     </h2>
-                    <ResponsiveContainer width="100%" height={200}>
-                        <BarChart data={barChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                            <YAxis domain={[0, 100]} />
-                            <Tooltip />
-                            <Bar dataKey="점수" radius={[4, 4, 0, 0]}>
-                                {barChartData.map((entry, index) => (
-                                    <Cell
-                                        key={`cell-${index}`}
-                                        fill={
-                                            entry.category === '공통' ? COLORS.primary :
-                                            entry.category === '학교별' ? COLORS.secondary :
-                                            COLORS.success
-                                        }
-                                    />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                    <div className="flex justify-center gap-6 mt-2 text-sm">
-                        <span className="flex items-center gap-1">
-                            <span className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.primary }}></span>
-                            공통 시험
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.secondary }}></span>
-                            학교별 시험
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="w-3 h-3 rounded" style={{ backgroundColor: COLORS.success }}></span>
-                            모의고사
-                        </span>
+
+                    <div className="grid grid-cols-3 gap-4">
+                        {schoolExams.slice(0, 3).map((school) => {
+                            const barData = getBarData(school.scores, school.name);
+                            return (
+                                <div key={`bar-${school.name}`} className="border border-gray-200 rounded-lg p-4">
+                                    <h3 className="font-semibold mb-3" style={{ color: school.color }}>
+                                        영역별 성취도
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {barData.map((item, idx) => (
+                                            <div key={idx}>
+                                                <div className="flex justify-between text-sm mb-1">
+                                                    <span className="text-gray-600">{item.name}</span>
+                                                    <span className="font-semibold">{item.value}%</span>
+                                                </div>
+                                                <div className="w-full bg-gray-200 rounded-full h-4">
+                                                    <div
+                                                        className="h-4 rounded-full transition-all duration-500"
+                                                        style={{
+                                                            width: `${item.value}%`,
+                                                            backgroundColor: school.color
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-gray-400 mt-3 text-center">
+                                        ※ 막대 그래프는 영역별 달성률(%)을 나타냅니다.
+                                    </p>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
-                {/* 공통 시험 상세 */}
-                {data.commonExams.length > 0 && (
-                    <div className="p-6 border-b">
-                        <h2 className="text-lg font-semibold mb-4 flex items-center">
-                            <span className="w-2 h-6 bg-blue-500 mr-3 rounded"></span>
-                            공통 시험 ({data.commonExams.length}개)
-                        </h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            {data.commonExams.map((exam, index) => (
-                                <ExamCard key={index} exam={exam} type="common" />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* 학교별 시험 상세 */}
-                {data.schoolExams.length > 0 && (
-                    <div className="p-6 border-b">
-                        <h2 className="text-lg font-semibold mb-4 flex items-center">
-                            <span className="w-2 h-6 bg-purple-500 mr-3 rounded"></span>
-                            학교별 시험 ({data.schoolExams.length}개) - {data.school}
-                        </h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            {data.schoolExams.map((exam, index) => (
-                                <ExamCard key={index} exam={exam} type="school" />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* 모의고사 */}
-                {data.mockExam && (
-                    <div className="p-6 border-b">
-                        <h2 className="text-lg font-semibold mb-4 flex items-center">
-                            <span className="w-2 h-6 bg-green-500 mr-3 rounded"></span>
-                            모의고사
-                        </h2>
-                        <div className="max-w-md">
-                            <ExamCard exam={data.mockExam} type="mock" />
-                        </div>
-                    </div>
-                )}
-
-                {/* AI 코멘트 */}
-                {data.comment && (
-                    <div className="p-6">
-                        <h2 className="text-lg font-semibold mb-4 flex items-center">
-                            <span className="w-2 h-6 bg-yellow-500 mr-3 rounded"></span>
-                            학습 분석
-                        </h2>
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                            <p className="text-gray-700 whitespace-pre-line">{data.comment}</p>
-                        </div>
-                    </div>
-                )}
+                <hr className="border-gray-200 my-6" />
 
                 {/* 푸터 */}
-                <div className="bg-gray-50 p-4 text-center text-sm text-gray-500">
-                    <p>양영학원 고등 영어과 | {new Date().toLocaleDateString('ko-KR')}</p>
+                <div className="text-center text-sm text-gray-500">
+                    <p>양영학원 고등 영어과 - 내신기출테스트 결과 보고서</p>
                 </div>
             </div>
         </div>
