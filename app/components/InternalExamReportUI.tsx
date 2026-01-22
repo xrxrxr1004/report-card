@@ -73,25 +73,31 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
             schoolGroups[schoolName].push(exam);
         });
 
-        // 색상 및 설명 매핑
+        // 색상 및 설명 매핑 (1.대성 2.도안 3.둔산여고 순서)
         const schoolColors: { [key: string]: { color: string; borderColor: string; bgColor: string; description: string } } = {
-            '충남고': {
+            '대성고': {
                 color: '#3b82f6',
                 borderColor: 'border-blue-400',
                 bgColor: 'bg-blue-50',
-                description: '문제수는 적지만, 고난도 서술형과 문법이 많은 유형\n- 속도보다는 고난도 문법 지식을 요구하는 시험입니다.'
-            },
-            '대성고': {
-                color: '#10b981',
-                borderColor: 'border-emerald-400',
-                bgColor: 'bg-emerald-50',
-                description: '독해가 많고, 문항 수가 많은 것이 특징\n- 문제 수가 많아서 아무리 아는 내용이어도 적용 시 실수를 유도하는 시험입니다.'
+                description: '많은 문항 수와 독해 문제가 특징인 시험\n- 외부지문이 출제되므로 빠른 독해력과 시간 배분 능력을 기르는 것이 중요합니다.'
             },
             '도안고': {
                 color: '#10b981',
-                borderColor: 'border-green-400',
-                bgColor: 'bg-green-50',
-                description: '서술형 문항이 포함되어 정확한 문장 구조 파악이 필수적인 유형\n- 어휘와 어법, 그리고 서술형까지 종합적인 영어 능력을 평가합니다.'
+                borderColor: 'border-emerald-400',
+                bgColor: 'bg-emerald-50',
+                description: '함정 문법과 고난도 서술형이 특징인 시험\n- 독해, 어휘, 어법을 균형 있게 출제하므로 종합적인 영어 실력을 기르는 것이 중요합니다.'
+            },
+            '둔산여고': {
+                color: '#f59e0b',
+                borderColor: 'border-amber-400',
+                bgColor: 'bg-amber-50',
+                description: '어려운 지문과 많은 문항 수가 특징인 시험\n- 단어만으로 해결되지 않으므로 글의 논리적 흐름을 파악하는 문해력을 기르는 것이 중요합니다.'
+            },
+            '충남고': {
+                color: '#6366f1',
+                borderColor: 'border-indigo-400',
+                bgColor: 'bg-indigo-50',
+                description: '문제수는 적지만, 고난도 서술형과 문법이 많은 유형\n- 속도보다는 고난도 문법 지식을 요구하는 시험입니다.'
             },
             '모의고사': {
                 color: '#8b5cf6',
@@ -133,17 +139,30 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
         return Math.round(total / validScores.length);
     };
 
-    // 영역별 점수 계산 (퍼센트)
-    const calculateAreaPercentages = (scores: InternalExamScore[]) => {
+    // 학교별 영역 만점 설정 (역산 기준)
+    const getSchoolMaxScores = (schoolName: string) => {
+        if (schoolName === '대성고') {
+            // 대성고: 어휘 20, 어법 20, 독해(대의) 30, 빈칸 30 (독해세부 컬럼에 저장됨)
+            // 최성민: 어휘16/20=80%, 어법16/20=80%, 대의23/30=77%, 세부2/30≈7%
+            return { vocabulary: 20, grammar: 20, mainIdea: 30, detail: 30, blank: 0, subjective: 0 };
+        } else if (schoolName === '도안고') {
+            // 도안고: 어휘 25, 어법 11, 독해(대의) 36, 독해(세부) 28, 서답형 10
+            // 최성민: 어휘8/25=32%, 어법3.6/11≈33%, 대의0/36=0%, 세부6.1/28≈22%, 서답3/10=30%
+            return { vocabulary: 25, grammar: 11, mainIdea: 36, detail: 28, blank: 0, subjective: 10 };
+        } else if (schoolName === '둔산여고') {
+            // 둔산여고 (5개 영역, 서답형 없음):
+            // 어휘 9.9, 어법 15.9, 중심내용 40.6, 세부내용 13.6, 빈칸추론 20.0 = 총 100점
+            return { vocabulary: 9.9, grammar: 15.9, mainIdea: 40.6, detail: 13.6, blank: 20.0, subjective: 0 };
+        } else {
+            // 기본값
+            return { vocabulary: 20, grammar: 20, mainIdea: 30, detail: 30, blank: 0, subjective: 0 };
+        }
+    };
+
+    // 영역별 점수 계산 (퍼센트) - 학교별 만점 적용
+    const calculateAreaPercentages = (scores: InternalExamScore[], schoolName?: string) => {
         const areas = ['vocabulary', 'grammar', 'mainIdea', 'detail', 'blank', 'subjective'] as const;
-        const maxScores: { [key: string]: number } = {
-            vocabulary: 20,
-            grammar: 20,
-            mainIdea: 20,
-            detail: 20,
-            blank: 20,
-            subjective: 20
-        };
+        const maxScores = schoolName ? getSchoolMaxScores(schoolName) : null;
 
         const result: { [key: string]: number } = {};
 
@@ -153,73 +172,153 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
                 .filter((v): v is number => v !== null && v !== undefined);
 
             if (validScores.length > 0) {
-                const avg = validScores.reduce((a, b) => a + b, 0) / validScores.length;
-                result[area] = Math.round((avg / maxScores[area]) * 100);
+                const total = validScores.reduce((a, b) => a + b, 0);
+                const maxScore = maxScores ? maxScores[area] : 100;
+
+                if (maxScore > 0) {
+                    // 실제 점수를 만점 대비 퍼센트로 계산
+                    const percent = Math.round((total / maxScore) * 100);
+                    result[area] = Math.min(percent, 100);
+                } else {
+                    result[area] = 0;
+                }
             } else {
                 result[area] = 0;
             }
         });
 
+        // 둔산여고는 5개 영역을 별도로 유지 (중심내용, 세부내용 분리)
+        // 더 이상 합치지 않음
+
         return result;
     };
 
-    // 레이더 차트 데이터 생성 (어휘, 어법, 세부사항, 중심내용)
-    const getRadarData = (scores: InternalExamScore[]) => {
-        const percentages = calculateAreaPercentages(scores);
-
-        return [
-            { subject: '어휘', value: percentages.vocabulary, fullMark: 100 },
-            { subject: '어법', value: percentages.grammar, fullMark: 100 },
-            { subject: '세부사항', value: percentages.detail, fullMark: 100 },
-            { subject: '중심내용', value: percentages.mainIdea, fullMark: 100 },
-        ];
-    };
-
-    // 막대 그래프 데이터 생성 (어휘, 어법, 세부사항, 중심내용)
-    const getBarData = (scores: InternalExamScore[]) => {
-        const percentages = calculateAreaPercentages(scores);
-
-        return [
-            { name: '어휘', value: percentages.vocabulary },
-            { name: '어법', value: percentages.grammar },
-            { name: '세부사항', value: percentages.detail },
-            { name: '중심내용', value: percentages.mainIdea },
-        ];
-    };
-
-    // AI 분석 코멘트 생성
-    const generateComment = (scores: InternalExamScore[], schoolName: string): string => {
-        const percentages = calculateAreaPercentages(scores);
-        const avgScore = calculateSchoolAverage(scores);
-
-        // 강점/약점 분석
-        const areas = Object.entries(percentages).sort((a, b) => b[1] - a[1]);
-        const strongest = areas[0];
-        const weakest = areas[areas.length - 1];
-
-        const areaNames: { [key: string]: string } = {
-            vocabulary: '어휘',
-            grammar: '어법',
-            mainIdea: '대의파악',
-            detail: '세부내용',
-            blank: '빈칸/추론',
-            subjective: '서답형'
-        };
-
-        if (avgScore >= 80) {
-            return `${schoolName} 시험에서 우수한 성취입니다. ${areaNames[strongest[0]]}이(가) 특히 뛰어나며, ${areaNames[weakest[0]]} 영역을 보완하면 만점 가능성이 있습니다.`;
-        } else if (avgScore >= 60) {
-            return `중상위권 성취입니다. ${areaNames[strongest[0]]}은(는) 안정적이며 ${areaNames[weakest[0]]}은(는) 보완이 필요합니다. 취약 영역을 보완하면 성적이 향상될 것입니다.`;
+    // 학교별 영역 설정
+    const getSchoolAreas = (schoolName: string) => {
+        if (schoolName === '도안고') {
+            // 도안고: 5개 영역 (어휘, 어법, 독해대의, 독해세부, 서답형)
+            return {
+                areas: ['vocabulary', 'grammar', 'mainIdea', 'detail', 'subjective'] as const,
+                names: {
+                    vocabulary: '어휘',
+                    grammar: '어법',
+                    mainIdea: '독해(대의)',
+                    detail: '독해(세부)',
+                    subjective: '서답형'
+                },
+                radarAreas: ['vocabulary', 'grammar', 'mainIdea', 'detail', 'subjective'] as const,
+                radarNames: ['어휘', '어법', '독해(대의)', '독해(세부)', '서답형']
+            };
+        } else if (schoolName === '대성고') {
+            // 대성고: 4개 영역 (어휘, 어법, 독해대의, 빈칸추론)
+            // 주의: 스프레드시트에서 "빈칸" 점수가 "독해(세부)" 컬럼에 저장됨 -> detail 사용
+            return {
+                areas: ['vocabulary', 'grammar', 'mainIdea', 'detail'] as const,
+                names: {
+                    vocabulary: '어휘',
+                    grammar: '어법',
+                    mainIdea: '독해(대의파악)',
+                    detail: '독해(빈칸/추론)'
+                },
+                radarAreas: ['vocabulary', 'grammar', 'mainIdea', 'detail'] as const,
+                radarNames: ['어휘', '어법', '독해(대의)', 'I(빈칸)']
+            };
+        } else if (schoolName === '둔산여고') {
+            // 둔산여고: 5개 영역 (어휘, 어법, 중심내용, 세부내용, 빈칸추론) - 서답형 없음
+            return {
+                areas: ['vocabulary', 'grammar', 'mainIdea', 'detail', 'blank'] as const,
+                names: {
+                    vocabulary: '어휘',
+                    grammar: '어법',
+                    mainIdea: '중심내용 파악',
+                    detail: '세부내용 파악',
+                    blank: '빈칸추론'
+                },
+                radarAreas: ['vocabulary', 'grammar', 'mainIdea', 'detail', 'blank'] as const,
+                radarNames: ['어휘', '어법', '중심내용', '세부내용', '빈칸']
+            };
         } else {
-            return `${schoolName} 시험에서는 ${areaNames[weakest[0]]} 유형 보완이 필요합니다. 기초부터 차근차근 학습하면 성적 향상이 가능합니다.`;
+            // 기타 학교 - 4개 영역 (기본값)
+            return {
+                areas: ['vocabulary', 'grammar', 'mainIdea', 'blank'] as const,
+                names: {
+                    vocabulary: '어휘',
+                    grammar: '어법',
+                    mainIdea: '독해(대의파악)',
+                    blank: '독해(빈칸/추론)'
+                },
+                radarAreas: ['vocabulary', 'grammar', 'mainIdea', 'blank'] as const,
+                radarNames: ['어휘', '어법', '독해(대의)', 'I(빈칸)']
+            };
+        }
+    };
+
+    // 레이더 차트 데이터 생성 - 학교별 영역
+    const getRadarData = (scores: InternalExamScore[], schoolName: string) => {
+        const percentages = calculateAreaPercentages(scores, schoolName);
+        const config = getSchoolAreas(schoolName);
+
+        return config.radarAreas.map((area, idx) => ({
+            subject: config.radarNames[idx],
+            value: percentages[area] || 0,
+            fullMark: 100
+        }));
+    };
+
+    // 막대 그래프 데이터 생성 - 학교별 영역
+    const getBarData = (scores: InternalExamScore[], schoolName: string) => {
+        const config = getSchoolAreas(schoolName);
+        const percentages = calculateAreaPercentages(scores, schoolName);
+
+        return config.areas.map(area => ({
+            name: config.names[area as keyof typeof config.names] || area,
+            value: Math.round(percentages[area] || 0)
+        }));
+    };
+
+    // AI 분석 코멘트 생성 - 학교별 영역 배점 기준
+    const generateComment = (scores: InternalExamScore[], schoolName: string): string => {
+        const config = getSchoolAreas(schoolName);
+        const areaNames = config.names as { [key: string]: string };
+
+        // 학생의 정답률 계산
+        const percentages = calculateAreaPercentages(scores, schoolName);
+
+        // 해당 학교의 영역만 필터링
+        const schoolAreaScores = config.areas
+            .map(area => ({ area, value: percentages[area] || 0 }))
+            .filter(item => item.value > 0);
+
+        if (schoolAreaScores.length === 0) return '데이터가 부족합니다.';
+
+        // 정답률 기준 정렬
+        const sorted = [...schoolAreaScores].sort((a, b) => b.value - a.value);
+        const strongest = sorted[0];
+        const weakest = sorted[sorted.length - 1];
+
+        const strongName = areaNames[strongest.area] || strongest.area;
+        const weakName = areaNames[weakest.area] || weakest.area;
+
+        const avgScore = schoolAreaScores.reduce((sum, item) => sum + item.value, 0) / schoolAreaScores.length;
+
+        if (avgScore >= 70) {
+            return `${strongName}(${strongest.value}%)이 강점입니다. ${weakest.value < 60 ? `${weakName}(${weakest.value}%) 보완 시 만점 가능.` : '현재 수준 유지하세요.'}`;
+        } else if (avgScore >= 50) {
+            return `${strongName}(${strongest.value}%)은 안정적. ${weakName}(${weakest.value}%) 집중 보완 필요.`;
+        } else {
+            return `${weakName}(${weakest.value}%) 영역 기초 학습 필요. 취약 영역을 보완하면 성적이 향상될 것입니다.`;
         }
     };
 
     const schoolExams = groupExamsBySchool();
 
-    // 전체 평균, 반 평균 계산 (샘플)
-    const totalAverage = 45.5; // 실제로는 API에서 가져와야 함
-    const classAverage = 52; // 실제로는 API에서 가져와야 함
+    // 학교별 평균 가져오기 함수
+    const getSchoolAverages = (schoolName: string) => {
+        if (data.schoolAverages && data.schoolAverages[schoolName]) {
+            return data.schoolAverages[schoolName];
+        }
+        return { totalAverage: 0, classAverage: 0, totalCount: 0, classCount: 0, studentClass: data.studentClass };
+    };
 
     return (
         <div className="min-h-screen bg-gray-100 p-4">
@@ -263,6 +362,7 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
                 <div className="grid grid-cols-3 gap-4 mb-8">
                     {schoolExams.slice(0, 3).map((school) => {
                         const avgScore = calculateSchoolAverage(school.scores);
+                        const schoolAvg = getSchoolAverages(school.name);
                         return (
                             <div
                                 key={school.name}
@@ -276,8 +376,8 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
                                         {school.name}
                                     </span>
                                     <div className="text-right text-xs text-gray-500">
-                                        <p>전체 평균: {totalAverage}점</p>
-                                        <p>{data.studentClass} 평균: {classAverage}점</p>
+                                        <p>전체 평균: {schoolAvg.totalAverage}점</p>
+                                        <p>{schoolAvg.studentClass || data.studentClass} 평균: {schoolAvg.classAverage}점</p>
                                     </div>
                                 </div>
                                 <p className="text-sm text-gray-700 font-medium mb-1">
@@ -298,7 +398,7 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
                 {/* 레이더 차트 섹션 */}
                 <div className="grid grid-cols-3 gap-4 mb-8">
                     {schoolExams.slice(0, 3).map((school) => {
-                        const radarData = getRadarData(school.scores);
+                        const radarData = getRadarData(school.scores, school.name);
                         return (
                             <div key={`radar-${school.name}`} className="border border-gray-200 rounded-lg p-4">
                                 <h3 className="text-center font-semibold text-gray-700 mb-2">
@@ -325,20 +425,28 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
                     })}
                 </div>
 
-                {/* 분석 코멘트 섹션 - 개인별 총평 */}
-                {data.comment && (
-                    <div className="mb-6">
-                        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                            <span className="w-1 h-6 bg-blue-600 mr-3"></span>
-                            분석 코멘트
-                        </h2>
-                        <div className="border border-blue-200 bg-blue-50 rounded-lg p-5">
-                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                                {data.comment}
-                            </p>
-                        </div>
+                {/* 분석 코멘트 섹션 - 학교별 */}
+                <div className="mb-6">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                        <span className="w-1 h-6 bg-blue-600 mr-3"></span>
+                        분석 코멘트
+                    </h2>
+                    <div className="grid grid-cols-3 gap-4">
+                        {schoolExams.slice(0, 3).map((school) => (
+                            <div
+                                key={`comment-${school.name}`}
+                                className={`border ${school.borderColor} ${school.bgColor} rounded-lg p-4`}
+                            >
+                                <h4 className="font-semibold mb-2" style={{ color: school.color }}>
+                                    {school.name}
+                                </h4>
+                                <p className="text-sm text-gray-700 leading-relaxed">
+                                    {generateComment(school.scores, school.name)}
+                                </p>
+                            </div>
+                        ))}
                     </div>
-                )}
+                </div>
 
                 {/* 영역별 상세 득점 현황 */}
                 <div className="mb-6">
@@ -349,30 +457,32 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
 
                     <div className="grid grid-cols-3 gap-4">
                         {schoolExams.slice(0, 3).map((school) => {
-                            const barData = getBarData(school.scores);
+                            const barData = getBarData(school.scores, school.name);
                             return (
                                 <div key={`bar-${school.name}`} className="border border-gray-200 rounded-lg p-4">
                                     <h3 className="font-semibold mb-3" style={{ color: school.color }}>
                                         영역별 성취도
                                     </h3>
                                     <div className="space-y-3">
-                                        {barData.map((item, idx) => (
-                                            <div key={idx}>
-                                                <div className="flex justify-between text-sm mb-1">
-                                                    <span className="text-gray-600">{item.name}</span>
-                                                    <span className="font-semibold">{item.value}%</span>
+                                        {barData.map((item, idx) => {
+                                            return (
+                                                <div key={idx}>
+                                                    <div className="flex justify-between text-sm mb-1">
+                                                        <span className="text-gray-600">{item.name}</span>
+                                                        <span className="font-semibold">{item.value}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 rounded-full h-4">
+                                                        <div
+                                                            className="h-4 rounded-full transition-all duration-500"
+                                                            style={{
+                                                                width: `${item.value}%`,
+                                                                backgroundColor: school.color
+                                                            }}
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <div className="w-full bg-gray-200 rounded-full h-4">
-                                                    <div
-                                                        className="h-4 rounded-full transition-all duration-500"
-                                                        style={{
-                                                            width: `${item.value}%`,
-                                                            backgroundColor: school.color
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                     <p className="text-xs text-gray-400 mt-3 text-center">
                                         ※ 막대 그래프는 영역별 달성률(%)을 나타냅니다.

@@ -625,6 +625,43 @@ export async function loadInternalExamScores(
         // 학생 기본정보 로드
         const studentsInfo = await loadStudentDatabase();
 
+        // 1. 먼저 시험별 전체 평균과 반별 평균을 계산
+        // 시험명 -> { 전체점수합, 전체인원, 반별: { 반명 -> { 점수합, 인원 } } }
+        const examStats = new Map<string, {
+            totalSum: number;
+            totalCount: number;
+            byClass: Map<string, { sum: number; count: number }>;
+        }>();
+
+        rows.forEach(row => {
+            const examSchool = row['학교']?.toString().trim() || '';
+            const studentClass = row['반']?.toString().trim() || '';
+            const totalScore = parseScore(row['총점']);
+
+            if (!examSchool || totalScore === null) return;
+
+            if (!examStats.has(examSchool)) {
+                examStats.set(examSchool, {
+                    totalSum: 0,
+                    totalCount: 0,
+                    byClass: new Map()
+                });
+            }
+
+            const stat = examStats.get(examSchool)!;
+            stat.totalSum += totalScore;
+            stat.totalCount += 1;
+
+            if (studentClass) {
+                if (!stat.byClass.has(studentClass)) {
+                    stat.byClass.set(studentClass, { sum: 0, count: 0 });
+                }
+                const classStat = stat.byClass.get(studentClass)!;
+                classStat.sum += totalScore;
+                classStat.count += 1;
+            }
+        });
+
         // 학생별로 그룹화
         const studentScoresMap = new Map<string, {
             info: { name: string; class: string; school: string };
@@ -665,9 +702,13 @@ export async function loadInternalExamScores(
             const schoolExams: InternalExamScore[] = [];
             let mockExam: InternalExamScore | undefined;
 
+            // 학교별 평균 정보 수집
+            const schoolAverages: { [examName: string]: { totalAverage: number; classAverage: number; totalCount: number; classCount: number } } = {};
+
             scores.forEach(row => {
                 const examType = row['시험유형']?.toString().trim().toLowerCase();
                 const examName = row['시험명']?.toString().trim() || '';
+                const examSchool = row['학교']?.toString().trim() || '';
 
                 const examScore: InternalExamScore = {
                     examName,
@@ -681,6 +722,30 @@ export async function loadInternalExamScores(
                     totalScore: parseScore(row['총점']),
                     maxScore: parseFloat(row['만점']?.toString() || '100') || 100
                 };
+
+                // 학교별 평균 계산 - 각 시험 행의 반 정보를 사용
+                const rowClass = row['반']?.toString().trim() || '';
+                if (examSchool && examStats.has(examSchool)) {
+                    const stat = examStats.get(examSchool)!;
+                    const totalAverage = stat.totalCount > 0 ? Math.round((stat.totalSum / stat.totalCount) * 10) / 10 : 0;
+
+                    let classAverage = totalAverage;
+                    let classCount = 0;
+                    // 각 시험 행의 반(rowClass)을 사용하여 반 평균 계산
+                    if (rowClass && stat.byClass.has(rowClass)) {
+                        const classStat = stat.byClass.get(rowClass)!;
+                        classAverage = classStat.count > 0 ? Math.round((classStat.sum / classStat.count) * 10) / 10 : 0;
+                        classCount = classStat.count;
+                    }
+
+                    schoolAverages[examSchool] = {
+                        totalAverage,
+                        classAverage,
+                        totalCount: stat.totalCount,
+                        classCount,
+                        studentClass: rowClass  // 해당 학교에서의 반 정보 추가
+                    };
+                }
 
                 if (examType === '공통') {
                     commonExams.push(examScore);
@@ -736,6 +801,7 @@ export async function loadInternalExamScores(
                 totalStudents: 0, // 나중에 계산
                 totalGrade: 0, // 나중에 계산
                 areaAverages,
+                schoolAverages,
                 comment
             });
         });

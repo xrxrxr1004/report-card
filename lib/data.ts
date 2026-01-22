@@ -141,6 +141,17 @@ export interface InternalExamReportData {
         subjective: number;
     };
 
+    // 학교별 평균 (시험명 -> { 전체평균, 반별평균 })
+    schoolAverages?: {
+        [examName: string]: {
+            totalAverage: number;
+            classAverage: number;
+            totalCount: number;
+            classCount: number;
+            studentClass?: string;  // 해당 학교에서의 학생 반 정보
+        };
+    };
+
     // AI 코멘트
     comment?: string;
 }

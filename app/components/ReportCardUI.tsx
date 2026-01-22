@@ -778,7 +778,7 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
         "bg-slate-50 border border-slate-200 rounded-xl flex flex-col",
         isPrint ? "p-2 mt-1.5" : "p-6 mt-6 min-h-[150px]"
       )}>
-        <h3 className={clsx("font-semibold text-slate-800 mb-1 flex items-center gap-2", isPrint ? "text-[11px]" : "text-xl")}>
+        <h3 className={clsx("font-semibold text-slate-800 mb-1 flex items-center gap-2", isPrint ? "text-[11px]" : "text-lg")}>
           종합 분석 (Comprehensive Analysis)
         </h3>
 
@@ -792,8 +792,8 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
             }}
           />
         ) : (
-          <div className={clsx("text-slate-700 whitespace-pre-line text-justify", isPrint ? "text-[10px] leading-snug tracking-tight" : "text-lg leading-relaxed")}>
-            {currentWeekData.comment || "코멘트가 없습니다."}
+          <div className={clsx("text-slate-700 text-justify", isPrint ? "text-[10px] leading-snug tracking-tight" : "text-lg leading-relaxed")}>
+            {(currentWeekData.comment || "코멘트가 없습니다.").replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim()}
           </div>
         )}
       </section>
