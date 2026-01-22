@@ -719,6 +719,9 @@ export async function loadInternalExamScores(
                 .filter((s): s is number => s !== null && s !== undefined)
                 .reduce((a, b) => a + b, 0);
 
+            // 총평 추출 (첫 번째 점수 행에서)
+            const comment = scores[0]?.['총평']?.toString().trim() || '';
+
             results.push({
                 studentId: `student-${name}`,
                 studentName: name,
@@ -732,7 +735,8 @@ export async function loadInternalExamScores(
                 totalRank: 0, // 나중에 계산
                 totalStudents: 0, // 나중에 계산
                 totalGrade: 0, // 나중에 계산
-                areaAverages
+                areaAverages,
+                comment
             });
         });
 

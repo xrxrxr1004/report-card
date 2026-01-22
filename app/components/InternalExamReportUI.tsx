@@ -163,48 +163,27 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
         return result;
     };
 
-    // 레이더 차트 데이터 생성
-    const getRadarData = (scores: InternalExamScore[], schoolName: string) => {
+    // 레이더 차트 데이터 생성 (어휘, 어법, 세부사항, 중심내용)
+    const getRadarData = (scores: InternalExamScore[]) => {
         const percentages = calculateAreaPercentages(scores);
-
-        // 도안고는 서답형 포함, 다른 학교는 빈칸 포함
-        if (schoolName === '도안고') {
-            return [
-                { subject: '어휘', value: percentages.vocabulary, fullMark: 100 },
-                { subject: '어법', value: percentages.grammar, fullMark: 100 },
-                { subject: '독해(대의)', value: percentages.mainIdea, fullMark: 100 },
-                { subject: '독해(세부)', value: percentages.detail, fullMark: 100 },
-                { subject: '서답형', value: percentages.subjective, fullMark: 100 },
-            ];
-        }
 
         return [
             { subject: '어휘', value: percentages.vocabulary, fullMark: 100 },
             { subject: '어법', value: percentages.grammar, fullMark: 100 },
-            { subject: '독해(대의)', value: percentages.mainIdea, fullMark: 100 },
-            { subject: 'I(빈칸)', value: percentages.blank, fullMark: 100 },
+            { subject: '세부사항', value: percentages.detail, fullMark: 100 },
+            { subject: '중심내용', value: percentages.mainIdea, fullMark: 100 },
         ];
     };
 
-    // 막대 그래프 데이터 생성
-    const getBarData = (scores: InternalExamScore[], schoolName: string) => {
+    // 막대 그래프 데이터 생성 (어휘, 어법, 세부사항, 중심내용)
+    const getBarData = (scores: InternalExamScore[]) => {
         const percentages = calculateAreaPercentages(scores);
-
-        if (schoolName === '도안고') {
-            return [
-                { name: '어휘', value: percentages.vocabulary },
-                { name: '어법', value: percentages.grammar },
-                { name: '독해(대의)', value: percentages.mainIdea },
-                { name: '독해(세부)', value: percentages.detail },
-                { name: '서답형', value: percentages.subjective },
-            ];
-        }
 
         return [
             { name: '어휘', value: percentages.vocabulary },
             { name: '어법', value: percentages.grammar },
-            { name: '독해(대의파악)', value: percentages.mainIdea },
-            { name: '독해(빈칸/추론)', value: percentages.blank },
+            { name: '세부사항', value: percentages.detail },
+            { name: '중심내용', value: percentages.mainIdea },
         ];
     };
 
@@ -319,7 +298,7 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
                 {/* 레이더 차트 섹션 */}
                 <div className="grid grid-cols-3 gap-4 mb-8">
                     {schoolExams.slice(0, 3).map((school) => {
-                        const radarData = getRadarData(school.scores, school.name);
+                        const radarData = getRadarData(school.scores);
                         return (
                             <div key={`radar-${school.name}`} className="border border-gray-200 rounded-lg p-4">
                                 <h3 className="text-center font-semibold text-gray-700 mb-2">
@@ -373,7 +352,7 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
 
                     <div className="grid grid-cols-3 gap-4">
                         {schoolExams.slice(0, 3).map((school) => {
-                            const barData = getBarData(school.scores, school.name);
+                            const barData = getBarData(school.scores);
                             return (
                                 <div key={`bar-${school.name}`} className="border border-gray-200 rounded-lg p-4">
                                     <h3 className="font-semibold mb-3" style={{ color: school.color }}>
@@ -406,6 +385,21 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
                         })}
                     </div>
                 </div>
+
+                {/* 개인별 총평 섹션 */}
+                {data.comment && (
+                    <div className="mb-6">
+                        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                            <span className="w-1 h-6 bg-blue-600 mr-3"></span>
+                            개인별 총평
+                        </h2>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
+                            <p className="text-gray-800 leading-relaxed whitespace-pre-line">
+                                {data.comment}
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 <hr className="border-gray-200 my-6" />
 
