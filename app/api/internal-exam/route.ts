@@ -3,7 +3,8 @@ import { InternalExamReportData, MANAGED_SCHOOLS } from '@/lib/data';
 import {
     loadInternalExamScores,
     getStudentInternalExamReport,
-    getAvailableInternalExamPeriods
+    getAvailableInternalExamPeriods,
+    getAllInternalExamDataForExport
 } from '@/lib/google_sheets_loader';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,16 @@ export async function GET(request: Request) {
         // 관리 학교 목록 조회
         if (action === 'schools') {
             return NextResponse.json(MANAGED_SCHOOLS);
+        }
+
+        // 엑셀 내보내기용 전체 데이터 조회
+        if (action === 'export') {
+            if (DATA_SOURCE === 'google_sheets') {
+                const exportData = await getAllInternalExamDataForExport(period);
+                return NextResponse.json(exportData);
+            }
+            // Excel 모드: 빈 배열 반환
+            return NextResponse.json([]);
         }
 
         // Google Sheets 모드

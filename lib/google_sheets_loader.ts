@@ -864,3 +864,44 @@ export async function getAvailableInternalExamPeriods(): Promise<string[]> {
         return ['2025-1학기'];
     }
 }
+
+/**
+ * 엑셀 내보내기용 전체 내신기출 데이터 조회
+ */
+export async function getAllInternalExamDataForExport(period?: string): Promise<Record<string, any>[]> {
+    try {
+        const data = await readSheetData(SHEETS.INTERNAL_EXAM);
+        const rows = sheetDataToObjects(data);
+
+        // 기간 필터링
+        let filteredRows = rows;
+        if (period) {
+            filteredRows = rows.filter(row => {
+                const rowPeriod = row['기간']?.toString().trim();
+                return rowPeriod === period;
+            });
+        }
+
+        // 엑셀 내보내기용 포맷으로 변환
+        return filteredRows.map(row => ({
+            '이름': row['이름'] || '',
+            '반': row['반'] || '',
+            '학교': row['학교'] || '',
+            '기간': row['기간'] || '',
+            '시험유형': row['시험유형'] || '',
+            '시험명': row['시험명'] || '',
+            '어휘': parseScore(row['어휘']),
+            '어법': parseScore(row['어법']),
+            '독해(대의)': parseScore(row['독해(대의)']),
+            '독해(세부)': parseScore(row['독해(세부)']),
+            '빈칸': parseScore(row['빈칸']),
+            '서답형': parseScore(row['서답형']),
+            '총점': parseScore(row['총점']),
+            '만점': parseScore(row['만점']),
+            '총평': row['총평'] || ''
+        }));
+    } catch (error) {
+        console.error('엑셀 내보내기용 데이터 조회 실패:', error);
+        throw error;
+    }
+}

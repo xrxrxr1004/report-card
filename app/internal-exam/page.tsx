@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { InternalExamReportData, MANAGED_SCHOOLS } from '@/lib/data';
+import { InternalExamReportData } from '@/lib/data';
 import InternalExamReportUI from '../components/InternalExamReportUI';
+import * as XLSX from 'xlsx';
 
 interface StudentOption {
     id: string;
@@ -22,6 +23,7 @@ export default function InternalExamPage() {
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [schoolFilter, setSchoolFilter] = useState<string>('');
+    const [exporting, setExporting] = useState(false);
 
     // 학생 목록 및 기간 목록 로드
     useEffect(() => {
@@ -100,6 +102,53 @@ export default function InternalExamPage() {
     // 고유 학교 목록 추출
     const uniqueSchools = Array.from(new Set(students.map(s => s.school).filter(Boolean)));
 
+    // 엑셀 내보내기 함수
+    const handleExportExcel = async () => {
+        setExporting(true);
+        try {
+            // 전체 내신기출 데이터 가져오기
+            const res = await fetch(`/api/internal-exam?action=export&period=${encodeURIComponent(selectedPeriod)}`);
+            if (!res.ok) {
+                throw new Error('데이터를 불러올 수 없습니다.');
+            }
+            const allData = await res.json();
+
+            // 학교별로 데이터 분리
+            const schoolData: { [key: string]: any[] } = {};
+
+            allData.forEach((item: any) => {
+                const school = item.학교 || '기타';
+                if (!schoolData[school]) {
+                    schoolData[school] = [];
+                }
+                schoolData[school].push(item);
+            });
+
+            // 워크북 생성
+            const wb = XLSX.utils.book_new();
+
+            // 전체 데이터 시트 추가
+            const wsAll = XLSX.utils.json_to_sheet(allData);
+            XLSX.utils.book_append_sheet(wb, wsAll, '전체');
+
+            // 학교별 시트 추가
+            Object.entries(schoolData).forEach(([school, data]) => {
+                const ws = XLSX.utils.json_to_sheet(data);
+                // 시트 이름은 31자 제한
+                const sheetName = school.substring(0, 31);
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            });
+
+            // 파일 다운로드
+            const fileName = `내신기출성적_${selectedPeriod}_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        } catch (err: any) {
+            alert('엑셀 내보내기 실패: ' + err.message);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* 헤더 */}
@@ -110,12 +159,33 @@ export default function InternalExamPage() {
                             <h1 className="text-2xl font-bold text-gray-900">내신기출 성적표</h1>
                             <p className="text-sm text-gray-500 mt-1">양영학원 고등 영어과</p>
                         </div>
-                        <a
-                            href="/"
-                            className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                            주간 성적표로 이동
-                        </a>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={handleExportExcel}
+                                disabled={exporting}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {exporting ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                        내보내는 중...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        엑셀 내보내기
+                                    </>
+                                )}
+                            </button>
+                            <a
+                                href="/"
+                                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                주간 성적표로 이동
+                            </a>
+                        </div>
                     </div>
                 </div>
             </header>
