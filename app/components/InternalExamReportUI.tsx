@@ -142,9 +142,8 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
     // 학교별 영역 만점 설정 (역산 기준)
     const getSchoolMaxScores = (schoolName: string) => {
         if (schoolName === '대성고') {
-            // 대성고: 어휘 20, 어법 20, 독해(대의) 30, 빈칸 30 (독해세부 컬럼에 저장됨)
-            // 최성민: 어휘16/20=80%, 어법16/20=80%, 대의23/30=77%, 세부2/30≈7%
-            return { vocabulary: 20, grammar: 20, mainIdea: 30, detail: 30, blank: 0, subjective: 0 };
+            // 대성고: 어휘 20, 어법 20, 빈칸/대의파악 60 (mainIdea 30 + detail 30 합산)
+            return { vocabulary: 20, grammar: 20, mainIdea: 30, detail: 30, combined: 60, blank: 0, subjective: 0 };
         } else if (schoolName === '도안고') {
             // 도안고: 어휘 25, 어법 11, 독해(대의) 36, 독해(세부) 28, 서답형 10
             // 최성민: 어휘8/25=32%, 어법3.6/11≈33%, 대의0/36=0%, 세부6.1/28≈22%, 서답3/10=30%
@@ -173,7 +172,7 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
 
             if (validScores.length > 0) {
                 const total = validScores.reduce((a, b) => a + b, 0);
-                const maxScore = maxScores ? maxScores[area] : 100;
+                const maxScore = maxScores ? (maxScores as any)[area] : 100;
 
                 if (maxScore > 0) {
                     // 실제 점수를 만점 대비 퍼센트로 계산
@@ -187,8 +186,18 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
             }
         });
 
-        // 둔산여고는 5개 영역을 별도로 유지 (중심내용, 세부내용 분리)
-        // 더 이상 합치지 않음
+        // 대성고: mainIdea + detail을 합산하여 combined로 계산
+        if (schoolName === '대성고') {
+            const mainIdeaScores = scores.map(s => s.mainIdea).filter((v): v is number => v !== null && v !== undefined);
+            const detailScores = scores.map(s => s.detail).filter((v): v is number => v !== null && v !== undefined);
+
+            const mainIdeaTotal = mainIdeaScores.reduce((a, b) => a + b, 0);
+            const detailTotal = detailScores.reduce((a, b) => a + b, 0);
+            const combinedTotal = mainIdeaTotal + detailTotal;
+            const combinedMax = 60; // 30 + 30
+
+            result['combined'] = Math.min(Math.round((combinedTotal / combinedMax) * 100), 100);
+        }
 
         return result;
     };
@@ -210,18 +219,17 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
                 radarNames: ['어휘', '어법', '독해(대의)', '독해(세부)', '서답형']
             };
         } else if (schoolName === '대성고') {
-            // 대성고: 4개 영역 (어휘, 어법, 독해대의, 빈칸추론)
-            // 주의: 스프레드시트에서 "빈칸" 점수가 "독해(세부)" 컬럼에 저장됨 -> detail 사용
+            // 대성고: 3개 영역 (어휘, 어법, 빈칸/대의파악)
+            // mainIdea와 detail을 합산하여 '빈칸/대의파악'으로 표시
             return {
-                areas: ['vocabulary', 'grammar', 'mainIdea', 'detail'] as const,
+                areas: ['vocabulary', 'grammar', 'combined'] as const,
                 names: {
                     vocabulary: '어휘',
                     grammar: '어법',
-                    mainIdea: '독해(대의파악)',
-                    detail: '독해(빈칸/추론)'
+                    combined: '빈칸/대의파악'
                 },
-                radarAreas: ['vocabulary', 'grammar', 'mainIdea', 'detail'] as const,
-                radarNames: ['어휘', '어법', '독해(대의)', 'I(빈칸)']
+                radarAreas: ['vocabulary', 'grammar', 'combined'] as const,
+                radarNames: ['어휘', '어법', '빈칸/대의파악']
             };
         } else if (schoolName === '둔산여고') {
             // 둔산여고: 5개 영역 (어휘, 어법, 중심내용, 세부내용, 빈칸추론) - 서답형 없음
@@ -276,7 +284,7 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
         }));
     };
 
-    // AI 분석 코멘트 생성 - 학교별 영역 배점 기준
+    // AI 분석 코멘트 생성 - 학교별 특징 및 학습 조언
     const generateComment = (scores: InternalExamScore[], schoolName: string): string => {
         const config = getSchoolAreas(schoolName);
         const areaNames = config.names as { [key: string]: string };
@@ -299,14 +307,15 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
         const strongName = areaNames[strongest.area] || strongest.area;
         const weakName = areaNames[weakest.area] || weakest.area;
 
-        const avgScore = schoolAreaScores.reduce((sum, item) => sum + item.value, 0) / schoolAreaScores.length;
-
-        if (avgScore >= 70) {
-            return `${strongName}(${strongest.value}%)이 강점입니다. ${weakest.value < 60 ? `${weakName}(${weakest.value}%) 보완 시 만점 가능.` : '현재 수준 유지하세요.'}`;
-        } else if (avgScore >= 50) {
-            return `${strongName}(${strongest.value}%)은 안정적. ${weakName}(${weakest.value}%) 집중 보완 필요.`;
+        // 학교별 시험 특징 및 코멘트
+        if (schoolName === '대성고') {
+            return `대성고 시험은 문항 수가 많고 외부 지문 기반 독해 문제가 주를 이룹니다. ${strongName} 영역에서 좋은 성취를 보여주고 있으며, ${weakName} 영역은 추가 학습이 필요합니다. 빠른 독해력과 시간 배분 능력을 기르기 위해 다양한 지문을 접하고 핵심 내용을 빠르게 파악하는 연습을 꾸준히 해주세요.`;
+        } else if (schoolName === '도안고') {
+            return `도안고 시험은 함정이 있는 문법 문제와 고난도 서술형이 특징입니다. ${strongName} 영역에서 안정적인 실력을 보여주고 있으며, ${weakName} 영역은 보완이 필요합니다. 어휘, 어법, 독해를 균형 있게 학습하고 특히 서술형 답안 작성 연습을 통해 문장 구성력을 키워주세요.`;
+        } else if (schoolName === '둔산여고') {
+            return `둔산여고 시험은 어려운 지문과 많은 문항 수가 특징이며, 단순 어휘 암기만으로는 해결되지 않습니다. ${strongName} 영역에서 강점을 보여주고 있으며, ${weakName} 영역은 집중 학습이 필요합니다. 글의 논리적 흐름을 파악하는 문해력을 기르고 빈칸 추론 문제에 대비해 문맥 파악 연습을 해주세요.`;
         } else {
-            return `${weakName}(${weakest.value}%) 영역 기초 학습 필요. 취약 영역을 보완하면 성적이 향상될 것입니다.`;
+            return `${strongName} 영역에서 좋은 성취를 보여주고 있습니다. ${weakName} 영역은 추가 학습을 통해 보완하면 전체적인 성적 향상이 기대됩니다. 취약한 영역을 집중적으로 복습하고, 다양한 유형의 문제를 풀어보며 실력을 다져주세요.`;
         }
     };
 
