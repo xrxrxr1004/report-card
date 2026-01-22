@@ -11,6 +11,7 @@ import { toPng } from 'html-to-image';
 interface InternalExamReportUIProps {
     data: InternalExamReportData;
     onExport?: () => void;
+    hideExportButton?: boolean;
 }
 
 // 학교 시험 정보 (충남고, 대성고, 도안고 등)
@@ -24,7 +25,7 @@ interface SchoolExamInfo {
     scores: InternalExamScore[];
 }
 
-export default function InternalExamReportUI({ data, onExport }: InternalExamReportUIProps) {
+export default function InternalExamReportUI({ data, onExport, hideExportButton = false }: InternalExamReportUIProps) {
     const reportRef = useRef<HTMLDivElement>(null);
 
     // 이미지 내보내기
@@ -332,17 +333,19 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
     return (
         <div className="min-h-screen bg-gray-100 p-4">
             {/* 내보내기 버튼 */}
-            <div className="max-w-5xl mx-auto mb-4 flex justify-end gap-2">
-                <button
-                    onClick={handleExportImage}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    이미지 저장
-                </button>
-            </div>
+            {!hideExportButton && (
+                <div className="max-w-5xl mx-auto mb-4 flex justify-end gap-2">
+                    <button
+                        onClick={handleExportImage}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        이미지 저장
+                    </button>
+                </div>
+            )}
 
             {/* 성적표 본문 */}
             <div ref={reportRef} className="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden p-8">

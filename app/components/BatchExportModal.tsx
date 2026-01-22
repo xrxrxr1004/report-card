@@ -101,9 +101,9 @@ export default function BatchExportModal({
                             img.onload = resolve;
                         });
 
-                        // A4 가로 방향 (landscape)
+                        // A4 세로 방향 (portrait)
                         const pdf = new jsPDF({
-                            orientation: 'landscape',
+                            orientation: 'portrait',
                             unit: 'mm',
                             format: 'a4'
                         });
@@ -324,7 +324,7 @@ export default function BatchExportModal({
                     }}
                 >
                     <div ref={hiddenReportRef}>
-                        <InternalExamReportUI data={currentReportData} />
+                        <InternalExamReportUI data={currentReportData} hideExportButton={true} />
                     </div>
                 </div>
             )}
