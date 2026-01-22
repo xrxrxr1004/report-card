@@ -327,12 +327,12 @@ export default function InternalExamReportUI({ data, onExport }: InternalExamRep
 
                 {/* 분석 코멘트 섹션 - 개인별 총평 */}
                 {data.comment && (
-                    <div className="mb-8">
+                    <div className="mb-6">
+                        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                            <span className="w-1 h-6 bg-blue-600 mr-3"></span>
+                            분석 코멘트
+                        </h2>
                         <div className="border border-blue-200 bg-blue-50 rounded-lg p-5">
-                            <h3 className="font-semibold mb-3 flex items-center gap-2 text-blue-600">
-                                <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                                분석 코멘트
-                            </h3>
                             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
                                 {data.comment}
                             </p>
