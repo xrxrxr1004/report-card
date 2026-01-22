@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "canvg": "^4.0.3",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "file-saver": "^2.0.5",
