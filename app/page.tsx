@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Download, Users, Filter, Check, Loader2, Image, DownloadCloud, Search, FileSpreadsheet, Sparkles, ChevronDown } from "lucide-react";
+import { Download, Users, Filter, Check, Loader2, Image, DownloadCloud, Search, FileSpreadsheet, Sparkles, ChevronDown, RefreshCw } from "lucide-react";
 import { Student, MOCK_STUDENTS } from "@/lib/data";
 import { useReactToPrint } from "react-to-print";
 import { toPng } from "html-to-image";
@@ -28,6 +28,7 @@ export default function ReportCard() {
   const [refiningStartTime, setRefiningStartTime] = useState<number | null>(null);
   const [currentProcessingStudent, setCurrentProcessingStudent] = useState<string>('');
   const [isImageMenuOpen, setIsImageMenuOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false); // 새로고침 상태
   const [isAIMenuOpen, setIsAIMenuOpen] = useState(false);
   // 초기값은 빈 배열로 설정하고, 데이터 로드 후 자동으로 채워짐
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -35,6 +36,11 @@ export default function ReportCard() {
   const [showSubjectGrade, setShowSubjectGrade] = useState<boolean>(true); // 영역별 등급 표시 여부
   const [currentWeekId, setCurrentWeekId] = useState<string>(''); // 초기값 비워둠
   const [availableWeeks, setAvailableWeeks] = useState<string[]>([]); // 사용 가능한 주차 목록
+  const [reportSettings, setReportSettings] = useState<{ title: string; subtitle: string; currentWeekId?: string }>({ 
+    title: '양영학원 고등 영어과', 
+    subtitle: '',
+    currentWeekId: ''
+  }); // 스프레드시트에서 가져온 설정
 
   // 주차 목록 불러오기
   useEffect(() => {
@@ -71,7 +77,16 @@ export default function ReportCard() {
       setLoading(true);
       try {
         const res = await fetch(`/api/students?weekId=${currentWeekId}&t=${Date.now()}`, { cache: 'no-store' });
-        const data = await res.json();
+        const response = await res.json();
+        
+        // API 응답에서 students와 settings 분리
+        const data = response.students || response; // 이전 형식 호환
+        const settings = response.settings;
+        
+        if (settings) {
+          setReportSettings(settings);
+        }
+        
         if (Array.isArray(data) && data.length > 0) {
           setStudents(data);
           // 선택된 학생이 있으면 유지, 없으면 첫 번째 학생 선택
@@ -143,6 +158,33 @@ export default function ReportCard() {
     }
     fetchData();
   }, [currentWeekId]);
+
+  // 새로고침 함수 - 캐시 초기화 후 데이터 다시 불러오기
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // 캐시 초기화
+      await fetch('/api/refresh', { method: 'POST' });
+      
+      // 데이터 다시 불러오기
+      const res = await fetch(`/api/students?weekId=${currentWeekId}&t=${Date.now()}`, { cache: 'no-store' });
+      const response = await res.json();
+      const data = response.students || response;
+      const settings = response.settings;
+      
+      if (settings) {
+        setReportSettings(settings);
+      }
+      
+      if (Array.isArray(data) && data.length > 0) {
+        setStudents(data);
+      }
+    } catch (error) {
+      console.error("Failed to refresh:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Filter students based on search query
   const filteredStudents = useMemo(() => {
@@ -1008,22 +1050,22 @@ export default function ReportCard() {
               <option value="" className="text-slate-900">검색 결과 없음</option>
             )}
           </select>
-          {/* 주차 선택 */}
-          <select
-            value={currentWeekId}
-            onChange={(e) => setCurrentWeekId(e.target.value)}
-            className="border border-slate-300 rounded-md px-3 py-2 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
-          >
-            {availableWeeks.map(week => (
-              <option key={week} value={week}>
-                {week}
-              </option>
-            ))}
-          </select>
+          {/* 주차 선택 - 단일 주차 모드이므로 숨김 */}
         </div>
 
         {/* Right Section: Action Buttons - 가로 정렬 */}
         <div className="flex items-center gap-2 flex-wrap w-full">
+          {/* 새로고침 버튼 */}
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
+            title="스프레드시트에서 최신 데이터 불러오기"
+          >
+            <RefreshCw className={clsx("w-4 h-4", isRefreshing && "animate-spin")} />
+            {isRefreshing ? "새로고침 중..." : "새로고침"}
+          </button>
+
           {/* 코멘트 수정 */}
           <button
             onClick={() => setIsEditing(!isEditing)}
@@ -1292,6 +1334,7 @@ export default function ReportCard() {
           onMetricsChange={setSelectedMetrics}
           showSubjectGrade={showSubjectGrade}
           onShowSubjectGradeChange={setShowSubjectGrade}
+          reportSettings={reportSettings}
           onCommentChange={(comment) => {
             // Update comment in the student data
             const updatedStudents = students.map(s =>
@@ -1321,6 +1364,7 @@ export default function ReportCard() {
             forceOpen={true}
             selectedMetrics={selectedMetrics}
             showSubjectGrade={showSubjectGrade}
+            reportSettings={reportSettings}
           />
         </div>
       </div>
@@ -1347,6 +1391,7 @@ export default function ReportCard() {
                 forceOpen={true}
                 selectedMetrics={selectedMetrics}
                 showSubjectGrade={showSubjectGrade}
+                reportSettings={reportSettings}
               />
             </div>
           ))}
@@ -1366,6 +1411,7 @@ export default function ReportCard() {
                 isEditing={isEditing}
                 selectedMetrics={selectedMetrics}
                 showSubjectGrade={showSubjectGrade}
+                reportSettings={reportSettings}
                 onCommentChange={(comment) => {
                   // Update comment in the student data
                   const updatedStudents = students.map(s =>

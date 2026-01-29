@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { getAvailableWeeks } from '@/lib/google_sheets_loader';
+import { getAvailableWeeksFromSheets } from '@/lib/dynamic_sheets_loader';
 
 // 성적 데이터 디렉토리
 const SCORES_DIR = path.join(process.cwd(), 'data', 'scores');
@@ -11,6 +12,12 @@ const DATA_SOURCE = process.env.DATA_SOURCE || 'excel';
 
 export async function GET() {
     try {
+        // Google Sheets Dynamic 모드인 경우 - 주간성적 시트에서 실제 주차 목록 가져오기
+        if (DATA_SOURCE === 'google_sheets_dynamic') {
+            const weeks = await getAvailableWeeksFromSheets();
+            return NextResponse.json(weeks);
+        }
+        
         // Google Sheets 모드인 경우
         if (DATA_SOURCE === 'google_sheets') {
             const weeks = await getAvailableWeeks();

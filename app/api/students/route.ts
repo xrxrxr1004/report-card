@@ -1,16 +1,21 @@
 import { NextResponse } from 'next/server';
-// Force Rebuild: Refreshed Logic
+// Force Rebuild: Refreshed Logic v2 - Dynamic Sheets Support
 import { Student } from '@/lib/data';
 import { loadStudentsFromExcel, getWeekConfig } from '@/lib/excel_loader_v2';
 import { loadStudentsFromGoogleSheets, getWeekConfig as getWeekConfigFromSheets } from '@/lib/google_sheets_loader';
+import { loadStudentsFromDynamicSheets, loadSettings, clearCache as clearDynamicCache } from '@/lib/dynamic_sheets_loader';
 import { MANUAL_STUDENTS } from '@/lib/manual_data_source'; // Fallback용
 import { WeekConfig, DEFAULT_WEEK_CONFIG } from '@/lib/week_config';
 
-// 데이터 소스 선택 (google_sheets 또는 excel)
+// 데이터 소스 선택 (google_sheets, google_sheets_dynamic, excel)
 const DATA_SOURCE = process.env.DATA_SOURCE || 'excel';
 
 // 데이터 로더 함수 선택
 async function loadStudents(weekId: string): Promise<Student[]> {
+    if (DATA_SOURCE === 'google_sheets_dynamic') {
+        // 새로운 동적 로더 사용 (컬럼매핑 시트 기반)
+        return loadStudentsFromDynamicSheets(weekId);
+    }
     if (DATA_SOURCE === 'google_sheets') {
         return loadStudentsFromGoogleSheets(weekId);
     }
@@ -19,6 +24,20 @@ async function loadStudents(weekId: string): Promise<Student[]> {
 
 // 설정 로더 함수 선택
 async function loadWeekConfig(weekId: string): Promise<WeekConfig> {
+    if (DATA_SOURCE === 'google_sheets_dynamic') {
+        // 동적 로더는 설정을 자체적으로 관리
+        const settings = await loadSettings();
+        return {
+            ...DEFAULT_WEEK_CONFIG,
+            areaWeights: {
+                vocab: settings.categoryWeights.get('독해단어') || 0.2,
+                grammarTheory: settings.categoryWeights.get('문법이론') || 0,
+                grammarApp: settings.categoryWeights.get('문법확인학습') || 0.2,
+                mockExam: settings.categoryWeights.get('모의고사') || 0.4,
+                homework: settings.categoryWeights.get('숙제') || 0.2,
+            },
+        };
+    }
     if (DATA_SOURCE === 'google_sheets') {
         return getWeekConfigFromSheets(weekId);
     }
@@ -330,6 +349,32 @@ export async function GET(request: Request) {
         const url = new URL(request.url);
         const currentWeekId = url.searchParams.get('weekId') || DEFAULT_WEEK_ID;
 
+        // 단일 주차 모드 ('current') - 히스토리 누적 없이 현재 데이터만 로드
+        if (currentWeekId === 'current') {
+            const students = await loadStudents('current');
+            const weekConfig = await loadWeekConfig('current');
+            
+            // 단일 주차 처리
+            students.forEach(student => {
+                student.history.forEach(h => {
+                    h.growth = 0;
+                });
+            });
+            
+            // 설정 정보도 함께 반환
+            let reportSettings = { title: '양영학원 고등 영어과', subtitle: '', currentWeekId: 'current' };
+            if (DATA_SOURCE === 'google_sheets_dynamic') {
+                const settings = await loadSettings();
+                reportSettings = {
+                    title: settings.title || '양영학원 고등 영어과',
+                    subtitle: settings.subtitle || '',
+                    currentWeekId: 'current',
+                };
+            }
+            
+            return NextResponse.json({ students, settings: reportSettings });
+        }
+
         // 주차 ID 파싱 (예: "2025-12-W2" -> year: 2025, month: 12, week: 2)
         const weekMatch = currentWeekId.match(/(\d{4})-(\d{1,2})-W(\d+)/);
         if (!weekMatch) {
@@ -410,7 +455,10 @@ export async function GET(request: Request) {
             fallbackStudents.forEach(student => {
                 student.history = student.history.filter(h => h.weekId === currentWeekId);
             });
-            return NextResponse.json(fallbackStudents);
+            return NextResponse.json({ 
+                students: fallbackStudents, 
+                settings: { title: '양영학원 고등 영어과', subtitle: '' } 
+            });
         }
 
         // Process each student's history (모든 주차 데이터 처리)
@@ -577,7 +625,21 @@ export async function GET(request: Request) {
             });
         });
 
-        return NextResponse.json(students);
+        // 설정 정보도 함께 반환 (제목, 부제, 현재주차 등)
+        let reportSettings = { title: '양영학원 고등 영어과', subtitle: '', currentWeekId: '' };
+        if (DATA_SOURCE === 'google_sheets_dynamic') {
+            const settings = await loadSettings();
+            reportSettings = {
+                title: settings.title || '양영학원 고등 영어과',
+                subtitle: settings.subtitle || '',
+                currentWeekId: settings.currentWeekId || '',
+            };
+        }
+
+        return NextResponse.json({ 
+            students, 
+            settings: reportSettings 
+        });
     } catch (error) {
         console.error('Error fetching students:', error);
         return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });

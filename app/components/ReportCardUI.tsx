@@ -28,9 +28,10 @@ interface ReportCardUIProps {
   onMetricsChange?: (metrics: string[]) => void; // 지표 선택 변경 핸들러
   showSubjectGrade?: boolean; // 영역별 등급 표시 여부
   onShowSubjectGradeChange?: (show: boolean) => void; // 영역별 등급 표시 변경 핸들러
+  reportSettings?: { title: string; subtitle: string }; // 스프레드시트 설정 (제목, 부제)
 }
 
-export default function ReportCardUI({ student, selectedCategories, isPrint = false, forceOpen = false, isEditing = false, onCommentChange, selectedMetrics: propSelectedMetrics, onMetricsChange, showSubjectGrade: propShowSubjectGrade, onShowSubjectGradeChange }: ReportCardUIProps) {
+export default function ReportCardUI({ student, selectedCategories, isPrint = false, forceOpen = false, isEditing = false, onCommentChange, selectedMetrics: propSelectedMetrics, onMetricsChange, showSubjectGrade: propShowSubjectGrade, onShowSubjectGradeChange, reportSettings }: ReportCardUIProps) {
   const [showRank, setShowRank] = useState(false);
   const [internalSelectedMetrics, setInternalSelectedMetrics] = useState<string[]>(['grade', 'score', 'growth', 'radarChart', 'growthChart']); // 내부 선택 상태 (props가 없을 때 사용)
   const [internalShowSubjectGrade, setInternalShowSubjectGrade] = useState(true); // 내부 등급 표시 상태 (props가 없을 때 사용)
@@ -133,10 +134,10 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
       ? [{
         subject: '문법응용',
         A: ((currentWeekData.grammarApp.score || 0) / ((
-          (currentWeekData.grammarApp.max1 || 100) +
-          (currentWeekData.grammarApp.max2 || 100) +
-          (currentWeekData.grammarApp.max3 || 100) +
-          (currentWeekData.grammarApp.max4 || 100)
+          (currentWeekData.grammarApp.max1 || 0) +
+          (currentWeekData.grammarApp.max2 || 0) +
+          (currentWeekData.grammarApp.max3 || 0) +
+          (currentWeekData.grammarApp.max4 || 0)
         ) || 1)) * 100,
         fullMark: 100,
         id: "grammarApp"
@@ -155,8 +156,8 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
       ? [{
         subject: "숙제",
         A: ((currentWeekData.homework.score || 0) / (
-          (currentWeekData.homework.max1 || 100) +
-          (currentWeekData.homework.max2 || 100) || 100
+          (currentWeekData.homework.max1 || 0) +
+          (currentWeekData.homework.max2 || 0) || 1
         )) * 100,
         fullMark: 100,
         id: "homework"
@@ -199,9 +200,9 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
       <header className={clsx("border-b border-slate-200 flex justify-between items-end relative", isPrint ? "pb-1.5 mb-2" : "pb-6 mb-6")}>
         <div>
           <h1 className={clsx("font-light text-slate-800 tracking-tight", isPrint ? "text-lg" : "text-3xl")}>
-            Weekly Report_{formatDate(currentWeekData.date)}
+            {reportSettings?.subtitle || `Weekly Report_${formatDate(currentWeekData.date)}`}
           </h1>
-          <p className={clsx("text-slate-500 mt-0.5", isPrint ? "text-[10px]" : "text-base")}>양영학원 고등 영어과</p>
+          <p className={clsx("text-slate-500 mt-0.5", isPrint ? "text-[10px]" : "text-base")}>{reportSettings?.title || '양영학원 고등 영어과'}</p>
         </div>
         <div className="text-right">
           <h2 className={clsx("font-medium text-slate-900", isPrint ? "text-xl" : "text-4xl")}>
@@ -586,10 +587,10 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
               subtitle={currentWeekData.grammarApp.subtitle}
               score={currentWeekData.grammarApp.score}
               maxScore={
-                (currentWeekData.grammarApp.max1 || 100) +
-                (currentWeekData.grammarApp.max2 || 100) +
-                (currentWeekData.grammarApp.max3 || 100) +
-                (currentWeekData.grammarApp.max4 || 100)
+                (currentWeekData.grammarApp.max1 || 0) +
+                (currentWeekData.grammarApp.max2 || 0) +
+                (currentWeekData.grammarApp.max3 || 0) +
+                (currentWeekData.grammarApp.max4 || 0)
               }
               grade={currentWeekData.grammarApp.grade}
               rank={currentWeekData.grammarApp.rank}
@@ -599,60 +600,38 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
               forceOpen={forceOpen}
               showGrade={showSubjectGrade}
             >
-              {/* 문법 확인학습 세부 점수 그리드 - 항상 4개 표시 */}
-              <div className={clsx(
-                "grid gap-4",
-                isPrint ? "mt-1 gap-2" : "mt-4",
-                "grid-cols-4"
-              )}>
-                {/* 문법 확인학습 1 */}
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.grammarApp.itemName1 || "문법 확인학습 1"}
+              {/* 문법 확인학습 세부 점수 그리드 - 설정된 항목만 동적 표시 */}
+              {(() => {
+                // 표시할 항목 수 계산
+                const grammarItems = [
+                  { max: currentWeekData.grammarApp.max1, score: currentWeekData.grammarApp.score1, name: currentWeekData.grammarApp.itemName1, default: "문법 확인학습 1" },
+                  { max: currentWeekData.grammarApp.max2, score: currentWeekData.grammarApp.score2, name: currentWeekData.grammarApp.itemName2, default: "문법 확인학습 2" },
+                  { max: currentWeekData.grammarApp.max3, score: currentWeekData.grammarApp.score3, name: currentWeekData.grammarApp.itemName3, default: "문법 확인학습 3" },
+                  { max: currentWeekData.grammarApp.max4, score: currentWeekData.grammarApp.score4, name: currentWeekData.grammarApp.itemName4, default: "문법 확인학습 4" },
+                ].filter(item => (item.max || 0) > 0);
+                
+                const colsClass = grammarItems.length === 1 ? "grid-cols-1" 
+                  : grammarItems.length === 2 ? "grid-cols-2" 
+                  : grammarItems.length === 3 ? "grid-cols-3" 
+                  : "grid-cols-4";
+                
+                return grammarItems.length > 0 ? (
+                  <div className={clsx("grid gap-4", isPrint ? "mt-1 gap-2" : "mt-4", colsClass)}>
+                    {grammarItems.map((item, idx) => (
+                      <div key={idx} className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
+                        <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
+                          {item.name || item.default}
+                        </div>
+                        <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
+                          {item.score !== null && item.score !== undefined
+                            ? `${item.score} / ${item.max || 100}`
+                            : "미응시"}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.grammarApp.score1 !== null && currentWeekData.grammarApp.score1 !== undefined
-                      ? `${currentWeekData.grammarApp.score1} / ${currentWeekData.grammarApp.max1 || 100}`
-                      : "미응시"}
-                  </div>
-                </div>
-
-                {/* 문법 확인학습 2 */}
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.grammarApp.itemName2 || "문법 확인학습 2"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.grammarApp.score2 !== null && currentWeekData.grammarApp.score2 !== undefined
-                      ? `${currentWeekData.grammarApp.score2} / ${currentWeekData.grammarApp.max2 || 100}`
-                      : "미응시"}
-                  </div>
-                </div>
-
-                {/* 문법 확인학습 3 */}
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.grammarApp.itemName3 || "문법 확인학습 3"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.grammarApp.score3 !== null && currentWeekData.grammarApp.score3 !== undefined
-                      ? `${currentWeekData.grammarApp.score3} / ${currentWeekData.grammarApp.max3 || 100}`
-                      : "미응시"}
-                  </div>
-                </div>
-
-                {/* 문법 확인학습 4 */}
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.grammarApp.itemName4 || "문법 확인학습 4"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.grammarApp.score4 !== null && currentWeekData.grammarApp.score4 !== undefined
-                      ? `${currentWeekData.grammarApp.score4} / ${currentWeekData.grammarApp.max4 || 100}`
-                      : "미응시"}
-                  </div>
-                </div>
-              </div>
+                ) : null;
+              })()}
 
               {currentWeekData.grammarApp.wrongAnswers.length > 0 ? (
                 <div className={clsx("space-y-1", isPrint ? "mt-1" : "mt-4")}>
@@ -800,7 +779,7 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
 
       {/* Footer */}
       <footer className={clsx("border-t border-slate-200 text-center text-slate-400 font-light", isPrint ? "mt-1 pt-1 text-[9px]" : "mt-auto pt-8 text-sm")} >
-        <p>양영학원 고등 영어과</p>
+        <p>{reportSettings?.title || '양영학원 고등 영어과'}</p>
         <p>본 성적표는 학생의 학습 향상을 위해 제공되는 자료입니다.</p>
       </footer>
     </div >

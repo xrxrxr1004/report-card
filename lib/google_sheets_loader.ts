@@ -8,7 +8,12 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 // 환경변수에서 설정 읽기
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID || '';
 const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '';
-const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n') || '';
+// Private key 처리: 따옴표 제거, 마지막 쉼표 제거, \n을 실제 줄바꿈으로 변환
+const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY
+    ?.replace(/^["']|["']$/g, '')  // 앞뒤 따옴표 제거
+    ?.replace(/,\s*$/, '')          // 마지막 쉼표 제거
+    ?.replace(/\\n/g, '\n')         // \n을 실제 줄바꿈으로
+    || '';
 
 // 시트 이름 설정
 const SHEETS = {
