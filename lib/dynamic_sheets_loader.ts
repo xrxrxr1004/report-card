@@ -21,6 +21,7 @@ export interface ColumnMapping {
     maxScore: number;           // 만점
     weight: number;             // 비율
     order: number;              // 순서
+    applicableClasses: string[];// 적용반 (빈 배열이면 모든 반에 적용)
 }
 
 export interface CategoryItem {
@@ -212,6 +213,12 @@ export async function loadColumnMappings(forceRefresh = false): Promise<ColumnMa
                 categoryWeights.set(category, weight);
             }
             
+            // 적용반 파싱 (쉼표로 구분된 반 목록)
+            const applicableClassesStr = row['적용반']?.toString().trim() || '';
+            const applicableClasses = applicableClassesStr 
+                ? applicableClassesStr.split(',').map(c => c.trim()).filter(c => c)
+                : []; // 빈 배열 = 모든 반에 적용
+            
             mappings.push({
                 category,
                 spreadsheetColumn,
@@ -219,6 +226,7 @@ export async function loadColumnMappings(forceRefresh = false): Promise<ColumnMa
                 maxScore: parseFloat(row['만점']) || 100,
                 weight: categoryWeights.get(category) || 0,
                 order: parseInt(row['순서']) || index + 1,
+                applicableClasses,
             });
         });
         
@@ -235,14 +243,14 @@ export async function loadColumnMappings(forceRefresh = false): Promise<ColumnMa
 
 function getDefaultColumnMappings(): ColumnMapping[] {
     return [
-        { category: '학생정보', spreadsheetColumn: '이름', displayName: '이름', maxScore: 0, weight: 0, order: 1 },
-        { category: '학생정보', spreadsheetColumn: '반', displayName: '반', maxScore: 0, weight: 0, order: 2 },
-        { category: '학생정보', spreadsheetColumn: '학교', displayName: '학교', maxScore: 0, weight: 0, order: 3 },
-        { category: '독해단어', spreadsheetColumn: '독해단어1', displayName: 'Week1', maxScore: 50, weight: 0.2, order: 1 },
-        { category: '독해단어', spreadsheetColumn: '독해단어2', displayName: 'Week2', maxScore: 50, weight: 0, order: 2 },
-        { category: '문법확인학습', spreadsheetColumn: '문법1', displayName: '문법 1', maxScore: 100, weight: 0.2, order: 1 },
-        { category: '모의고사', spreadsheetColumn: '모의고사', displayName: '모의고사', maxScore: 100, weight: 0.4, order: 1 },
-        { category: '숙제', spreadsheetColumn: '숙제', displayName: '숙제', maxScore: 100, weight: 0.2, order: 1 },
+        { category: '학생정보', spreadsheetColumn: '이름', displayName: '이름', maxScore: 0, weight: 0, order: 1, applicableClasses: [] },
+        { category: '학생정보', spreadsheetColumn: '반', displayName: '반', maxScore: 0, weight: 0, order: 2, applicableClasses: [] },
+        { category: '학생정보', spreadsheetColumn: '학교', displayName: '학교', maxScore: 0, weight: 0, order: 3, applicableClasses: [] },
+        { category: '독해단어', spreadsheetColumn: '독해단어1', displayName: 'Week1', maxScore: 50, weight: 0.2, order: 1, applicableClasses: [] },
+        { category: '독해단어', spreadsheetColumn: '독해단어2', displayName: 'Week2', maxScore: 50, weight: 0, order: 2, applicableClasses: [] },
+        { category: '문법확인학습', spreadsheetColumn: '문법1', displayName: '문법 1', maxScore: 100, weight: 0.2, order: 1, applicableClasses: [] },
+        { category: '모의고사', spreadsheetColumn: '모의고사', displayName: '모의고사', maxScore: 100, weight: 0.4, order: 1, applicableClasses: [] },
+        { category: '숙제', spreadsheetColumn: '숙제', displayName: '숙제', maxScore: 100, weight: 0.2, order: 1, applicableClasses: [] },
     ];
 }
 
@@ -402,24 +410,66 @@ export async function loadStudentsFromDynamicSheets(weekId?: string): Promise<St
         const studentClass = row[classColumn]?.toString().trim() || '';
         const school = row[schoolColumn]?.toString().trim() || '';
         
-        // 카테고리별 데이터 수집
+        // 카테고리별 데이터 수집 (반별 매핑 적용)
         const vocabItems: CategoryItem[] = [];
         const grammarAppItems: CategoryItem[] = [];
         const mockExamItems: CategoryItem[] = [];
         const homeworkItems: CategoryItem[] = [];
         
+        // 같은 displayName을 가진 항목들 중 학생 반에 맞는 것만 선택
+        const processedDisplayNames = new Set<string>();
+        
         categoryMappings.forEach((catMappings, category) => {
             if (category === '학생정보') return;
             
-            catMappings.forEach((mapping, idx) => {
-                const score = parseScore(row[mapping.spreadsheetColumn]);
+            // 같은 카테고리 내에서 displayName별로 그룹화
+            const displayNameGroups = new Map<string, ColumnMapping[]>();
+            catMappings.forEach(mapping => {
+                const group = displayNameGroups.get(mapping.displayName) || [];
+                group.push(mapping);
+                displayNameGroups.set(mapping.displayName, group);
+            });
+            
+            // 각 displayName 그룹에서 학생 반에 맞는 매핑 선택
+            displayNameGroups.forEach((mappingsForDisplay, displayName) => {
+                // 학생 반에 맞는 매핑 찾기
+                let selectedMapping: ColumnMapping | null = null;
+                
+                for (const mapping of mappingsForDisplay) {
+                    // applicableClasses가 비어있으면 모든 반에 적용
+                    if (mapping.applicableClasses.length === 0) {
+                        selectedMapping = mapping;
+                        break;
+                    }
+                    // 학생 반이 적용반 목록에 있으면 선택
+                    if (mapping.applicableClasses.includes(studentClass)) {
+                        selectedMapping = mapping;
+                        break;
+                    }
+                }
+                
+                // 매핑을 찾지 못했으면 첫 번째 매핑 시도 (fallback)
+                if (!selectedMapping && mappingsForDisplay.length > 0) {
+                    // 점수가 있는 매핑 찾기
+                    for (const mapping of mappingsForDisplay) {
+                        const score = parseScore(row[mapping.spreadsheetColumn]);
+                        if (score !== null) {
+                            selectedMapping = mapping;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!selectedMapping) return;
+                
+                const score = parseScore(row[selectedMapping.spreadsheetColumn]);
                 const item: CategoryItem = {
-                    id: `${category}-${idx}`,
-                    columnName: mapping.spreadsheetColumn,
-                    displayName: mapping.displayName,
+                    id: `${category}-${selectedMapping.order}`,
+                    columnName: selectedMapping.spreadsheetColumn,
+                    displayName: selectedMapping.displayName,
                     score,
-                    maxScore: mapping.maxScore,
-                    order: mapping.order,
+                    maxScore: selectedMapping.maxScore,
+                    order: selectedMapping.order,
                 };
                 
                 if (category === '독해단어') vocabItems.push(item);
@@ -428,6 +478,12 @@ export async function loadStudentsFromDynamicSheets(weekId?: string): Promise<St
                 else if (category === '숙제') homeworkItems.push(item);
             });
         });
+        
+        // 순서대로 정렬
+        vocabItems.sort((a, b) => a.order - b.order);
+        grammarAppItems.sort((a, b) => a.order - b.order);
+        mockExamItems.sort((a, b) => a.order - b.order);
+        homeworkItems.sort((a, b) => a.order - b.order);
         
         // VocabData 생성
         const vocabData: VocabData = {
