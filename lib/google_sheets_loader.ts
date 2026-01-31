@@ -7,6 +7,7 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 
 // 환경변수에서 설정 읽기
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID || '';
+const INTERNAL_EXAM_SPREADSHEET_ID = process.env.GOOGLE_INTERNAL_EXAM_SPREADSHEET_ID || SPREADSHEET_ID;
 const GOOGLE_SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '';
 // Private key 처리: 따옴표 제거, 마지막 쉼표 제거, \n을 실제 줄바꿈으로 변환
 const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY
@@ -60,6 +61,21 @@ async function readSheetData(sheetName: string, range?: string): Promise<any[][]
 
     const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
+        range: fullRange,
+    });
+
+    return response.data.values || [];
+}
+
+/**
+ * 내신기출용 시트 데이터 읽기 (별도 스프레드시트)
+ */
+async function readInternalExamSheetData(sheetName: string, range?: string): Promise<any[][]> {
+    const sheets = await getSheetsClient();
+    const fullRange = range ? `${sheetName}!${range}` : sheetName;
+
+    const response = await sheets.spreadsheets.values.get({
+        spreadsheetId: INTERNAL_EXAM_SPREADSHEET_ID,
         range: fullRange,
     });
 
@@ -624,7 +640,7 @@ export async function loadInternalExamScores(
     studentId?: string
 ): Promise<InternalExamReportData[]> {
     try {
-        const data = await readSheetData(SHEETS.INTERNAL_EXAM);
+        const data = await readInternalExamSheetData(SHEETS.INTERNAL_EXAM);
         const rows = sheetDataToObjects(data);
 
         // 학생 기본정보 로드
@@ -852,7 +868,7 @@ export async function getStudentInternalExamReport(
  */
 export async function getAvailableInternalExamPeriods(): Promise<string[]> {
     try {
-        const data = await readSheetData(SHEETS.INTERNAL_EXAM);
+        const data = await readInternalExamSheetData(SHEETS.INTERNAL_EXAM);
         const rows = sheetDataToObjects(data);
 
         const periods = new Set<string>();
@@ -875,7 +891,7 @@ export async function getAvailableInternalExamPeriods(): Promise<string[]> {
  */
 export async function getAllInternalExamDataForExport(period?: string): Promise<Record<string, any>[]> {
     try {
-        const data = await readSheetData(SHEETS.INTERNAL_EXAM);
+        const data = await readInternalExamSheetData(SHEETS.INTERNAL_EXAM);
         const rows = sheetDataToObjects(data);
 
         // 기간 필터링

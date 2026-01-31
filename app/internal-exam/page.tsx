@@ -26,34 +26,83 @@ export default function InternalExamPage() {
     const [schoolFilter, setSchoolFilter] = useState<string>('');
     const [exporting, setExporting] = useState(false);
     const [showBatchExport, setShowBatchExport] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
-    // 학생 목록 및 기간 목록 로드
+    // 데이터 새로고침 함수
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        setLoadingStudents(true);
+        try {
+            // 기간 목록 다시 로드
+            const periodsRes = await fetch(`/api/internal-exam?action=periods&t=${Date.now()}`);
+            let currentPeriod = selectedPeriod;
+            if (periodsRes.ok) {
+                const periodsData = await periodsRes.json();
+                if (Array.isArray(periodsData) && periodsData.length > 0) {
+                    setPeriods(periodsData);
+                    currentPeriod = periodsData[0];
+                    setSelectedPeriod(currentPeriod);
+                }
+            }
+
+            // 학생 목록 다시 로드
+            const res = await fetch(`/api/internal-exam?period=${encodeURIComponent(currentPeriod)}&t=${Date.now()}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    const studentOptions: StudentOption[] = data.map((s: any) => ({
+                        id: s.studentId,
+                        name: s.studentName,
+                        class: s.studentClass,
+                        school: s.school
+                    }));
+                    setStudents(studentOptions);
+                }
+            }
+        } catch (err) {
+            console.error('새로고침 실패:', err);
+        } finally {
+            setIsRefreshing(false);
+            setLoadingStudents(false);
+        }
+    };
+
+    // 기간 목록 및 학생 목록 로드
     useEffect(() => {
         async function loadData() {
+            setLoadingStudents(true);
             try {
-                // 기간 목록 로드
+                // 1. 기간 목록 로드
                 const periodsRes = await fetch('/api/internal-exam?action=periods');
+                let currentPeriod = selectedPeriod;
                 if (periodsRes.ok) {
                     const periodsData = await periodsRes.json();
                     if (Array.isArray(periodsData) && periodsData.length > 0) {
                         setPeriods(periodsData);
-                        setSelectedPeriod(periodsData[0]);
+                        currentPeriod = periodsData[0];
+                        setSelectedPeriod(currentPeriod);
                     }
                 }
 
-                // 학생 목록 로드 (주간 성적표에서 사용하는 학생 목록 재활용)
-                const studentsRes = await fetch('/api/students');
-                if (studentsRes.ok) {
-                    const studentsData = await studentsRes.json();
-                    if (Array.isArray(studentsData)) {
-                        const studentOptions: StudentOption[] = studentsData.map((s: any) => ({
-                            id: s.id,
-                            name: s.name,
-                            class: s.class,
+                // 2. 학생 목록 로드 (내신기출 API에서 직접 가져오기)
+                const res = await fetch(`/api/internal-exam?period=${encodeURIComponent(currentPeriod)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log('내신기출 API 응답:', data);
+                    if (Array.isArray(data) && data.length > 0) {
+                        const studentOptions: StudentOption[] = data.map((s: any) => ({
+                            id: s.studentId,
+                            name: s.studentName,
+                            class: s.studentClass,
                             school: s.school
                         }));
+                        console.log('학생 목록:', studentOptions);
                         setStudents(studentOptions);
+                    } else {
+                        console.log('데이터가 배열이 아니거나 비어있음:', data);
                     }
+                } else {
+                    console.error('API 응답 실패:', res.status);
                 }
             } catch (err) {
                 console.error('데이터 로드 실패:', err);
@@ -63,6 +112,32 @@ export default function InternalExamPage() {
         }
         loadData();
     }, []);
+
+    // 기간 변경 시 학생 목록 다시 로드
+    const handlePeriodChange = async (newPeriod: string) => {
+        setSelectedPeriod(newPeriod);
+        setLoadingStudents(true);
+        setSelectedStudentId('');
+        try {
+            const res = await fetch(`/api/internal-exam?period=${encodeURIComponent(newPeriod)}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    const studentOptions: StudentOption[] = data.map((s: any) => ({
+                        id: s.studentId,
+                        name: s.studentName,
+                        class: s.studentClass,
+                        school: s.school
+                    }));
+                    setStudents(studentOptions);
+                }
+            }
+        } catch (err) {
+            console.error('학생 목록 로드 실패:', err);
+        } finally {
+            setLoadingStudents(false);
+        }
+    };
 
     // 선택된 학생의 내신기출 성적 로드
     useEffect(() => {
@@ -162,6 +237,17 @@ export default function InternalExamPage() {
                             <p className="text-sm text-gray-500 mt-1">양영학원 고등 영어과</p>
                         </div>
                         <div className="flex items-center gap-3">
+                            {/* 새로고침 버튼 */}
+                            <button
+                                onClick={handleRefresh}
+                                disabled={isRefreshing}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                            >
+                                <svg className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                {isRefreshing ? '새로고침 중...' : '새로고침'}
+                            </button>
                             <button
                                 onClick={() => setShowBatchExport(true)}
                                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
@@ -215,7 +301,7 @@ export default function InternalExamPage() {
                                 </label>
                                 <select
                                     value={selectedPeriod}
-                                    onChange={(e) => setSelectedPeriod(e.target.value)}
+                                    onChange={(e) => handlePeriodChange(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 >
                                     {periods.map((period) => (
