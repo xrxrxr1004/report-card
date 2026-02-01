@@ -38,20 +38,30 @@ export default function ErrorNotesUI({ student }: ErrorNotesUIProps) {
   // 문법특강 수강 여부 확인
   const hasGrammarLecture = studentTypes.some(t => t.startsWith('문법특강'));
 
-  // 필터링할 유형 목록 결정
-  const availableTypes = useMemo(() => {
-    if (hasGrammarLecture) {
-      // 문법특강 학생: 일반 유형 + 문법특강 Week들
-      return [...REGULAR_TYPES, ...GRAMMAR_LECTURE_TYPES].filter(t => studentTypes.includes(t));
-    } else {
-      // 일반 학생: 일반 유형만
-      return REGULAR_TYPES.filter(t => studentTypes.includes(t));
-    }
-  }, [studentTypes, hasGrammarLecture]);
+  // 일반 유형 오답만 필터링
+  const regularErrors = useMemo(() => {
+    return student.errors.filter(e => !e.type.startsWith('문법특강'));
+  }, [student.errors]);
 
-  const filteredErrors = typeFilter === 'all'
-    ? student.errors
-    : student.errors.filter(e => e.type === typeFilter);
+  // 문법특강 오답만 필터링
+  const grammarLectureErrors = useMemo(() => {
+    return student.errors.filter(e => e.type.startsWith('문법특강'));
+  }, [student.errors]);
+
+  // 필터링할 유형 목록 결정 (일반 유형만)
+  const availableRegularTypes = useMemo(() => {
+    return REGULAR_TYPES.filter(t => studentTypes.includes(t));
+  }, [studentTypes]);
+
+  // 문법특강 Week 유형 목록
+  const availableGrammarTypes = useMemo(() => {
+    return GRAMMAR_LECTURE_TYPES.filter(t => studentTypes.includes(t));
+  }, [studentTypes]);
+
+  // 현재 필터에 따른 오답 (일반 유형용)
+  const filteredRegularErrors = typeFilter === 'all'
+    ? regularErrors
+    : regularErrors.filter(e => e.type === typeFilter);
 
   // 점수 계산
   const hasScoreData = student.totalPossiblePoints && student.totalPossiblePoints > 0;
@@ -215,137 +225,218 @@ export default function ErrorNotesUI({ student }: ErrorNotesUIProps) {
                 <div className="text-gray-500 text-xs mt-1">개념 오답</div>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* 문법특강 Week별 통계 - 문법특강 수강생만 */}
-            {hasGrammarLecture && Object.keys(grammarWeekErrors).length > 0 && (
-              <div className="mt-4">
-                <h3 className="text-blue-600 font-bold text-sm tracking-wider mb-3">📚 문법특강 Week별 오답</h3>
-                <div className="grid grid-cols-5 gap-3">
-                  {GRAMMAR_LECTURE_TYPES.map(week => {
-                    const count = grammarWeekErrors[week] || 0;
-                    const weekNum = week.replace('문법특강 Week ', '');
-                    const style = TYPE_STYLES[week];
+        {/* 일반 오답 목록 */}
+        {regularErrors.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 mb-6">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4 print:hidden">
+                <h3 className="text-blue-600 font-bold text-sm tracking-wider">
+                  📝 일반 오답 목록 ({filteredRegularErrors.length}개)
+                </h3>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setTypeFilter('all')}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                      typeFilter === 'all'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    전체
+                  </button>
+                  {availableRegularTypes.map(t => {
+                    const style = TYPE_STYLES[t];
                     return (
-                      <div key={week} className={`${style?.bg || 'bg-gray-50'} rounded-xl p-3 text-center`}>
-                        <div className={`text-2xl font-bold ${style?.text || 'text-gray-500'}`}>{count}</div>
-                        <div className="text-gray-500 text-xs mt-1">Week {weekNum}</div>
-                      </div>
+                      <button
+                        key={t}
+                        onClick={() => setTypeFilter(t)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                          typeFilter === t
+                            ? `${style?.btnBg || 'bg-gray-500'} text-white`
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {t}
+                      </button>
                     );
                   })}
                 </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* 오답 목록 */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4 print:hidden">
-              <h3 className="text-blue-600 font-bold text-sm tracking-wider">
-                📝 전체 오답 목록 ({filteredErrors.length}개)
-              </h3>
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setTypeFilter('all')}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                    typeFilter === 'all'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  전체
-                </button>
-                {availableTypes.map(t => {
-                  const style = TYPE_STYLES[t];
-                  const isWeekType = t.startsWith('문법특강');
-                  const label = isWeekType ? t.replace('문법특강 ', '') : t;
+              <div className="space-y-3">
+                {filteredRegularErrors.map((error, index) => {
+                  const style = TYPE_STYLES[error.type] || { bg: 'bg-gray-100', text: 'text-gray-700', btnBg: 'bg-gray-500' };
+                  const isExpanded = expandedErrors[index];
+
                   return (
-                    <button
-                      key={t}
-                      onClick={() => setTypeFilter(t)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
-                        typeFilter === t
-                          ? `${style?.btnBg || 'bg-gray-500'} text-white`
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
+                    <div
+                      key={index}
+                      className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100"
+                      style={{ pageBreakInside: 'avoid' }}
                     >
-                      {label}
-                    </button>
+                      <div
+                        onClick={() => toggleError(index)}
+                        className="p-4 cursor-pointer hover:bg-gray-100 transition-colors print:hidden"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${style.bg} ${style.text}`}>
+                            {error.type}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-gray-700 text-sm font-medium truncate">
+                              {error.question.split('\n')[0]}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-emerald-600 text-xs bg-emerald-50 px-2 py-1 rounded">
+                              정답: {error.correctAnswer.length > 20 ? error.correctAnswer.substring(0, 20) + '...' : error.correctAnswer}
+                            </span>
+                            <span className="text-red-500 text-xs bg-red-50 px-2 py-1 rounded">
+                              오답: {error.studentAnswer.length > 20 ? error.studentAnswer.substring(0, 20) + '...' : error.studentAnswer}
+                            </span>
+                            {isExpanded ? (
+                              <ChevronDown className="w-5 h-5 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="w-5 h-5 text-gray-400" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 펼쳤을 때 또는 프린트 시 항상 표시 */}
+                      <div className={`px-4 pb-4 border-t border-gray-200 bg-white ${isExpanded ? '' : 'hidden print:block'}`}>
+                        <div className="pt-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>
+                              {error.type}
+                            </span>
+                          </div>
+                          <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed bg-gray-50 p-3 rounded-lg">
+                            {error.question}
+                          </p>
+                          <div className="flex gap-4 mt-3">
+                            <div className="flex-1 bg-emerald-50 p-3 rounded-lg">
+                              <span className="text-emerald-700 text-xs font-medium">정답</span>
+                              <p className="text-emerald-800 text-sm mt-1">{error.correctAnswer}</p>
+                            </div>
+                            <div className="flex-1 bg-red-50 p-3 rounded-lg">
+                              <span className="text-red-700 text-xs font-medium">학생 답안</span>
+                              <p className="text-red-800 text-sm mt-1">{error.studentAnswer}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
             </div>
+          </div>
+        )}
 
-            <div className="space-y-3">
-              {filteredErrors.map((error, index) => {
-                const style = TYPE_STYLES[error.type] || { bg: 'bg-gray-100', text: 'text-gray-700', btnBg: 'bg-gray-500' };
-                const isExpanded = expandedErrors[index];
+        {/* 문법특강 섹션 - 별도 분리 */}
+        {hasGrammarLecture && grammarLectureErrors.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-blue-200 mb-6">
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-500 py-4 px-6">
+              <h2 className="text-white text-lg font-bold">📚 문법특강 오답노트</h2>
+            </div>
 
-                return (
-                  <div
-                    key={index}
-                    className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100"
-                    style={{ pageBreakInside: 'avoid' }}
-                  >
+            <div className="p-6">
+              {/* Week별 통계 카드 */}
+              <div className="grid grid-cols-4 gap-3 mb-6">
+                {GRAMMAR_LECTURE_TYPES.map(week => {
+                  const count = grammarWeekErrors[week] || 0;
+                  const weekLabel = week.replace('문법특강 ', '');
+                  const style = TYPE_STYLES[week];
+                  return (
+                    <div key={week} className={`${style?.bg || 'bg-gray-50'} rounded-xl p-4 text-center`}>
+                      <div className={`text-3xl font-bold ${style?.text || 'text-gray-500'}`}>{count}</div>
+                      <div className="text-gray-600 text-sm mt-1 font-medium">{weekLabel}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 문법특강 오답 목록 */}
+              <h3 className="text-blue-600 font-bold text-sm tracking-wider mb-4">
+                📝 문법특강 오답 목록 ({grammarLectureErrors.length}개)
+              </h3>
+
+              <div className="space-y-3">
+                {grammarLectureErrors.map((error, index) => {
+                  const style = TYPE_STYLES[error.type] || { bg: 'bg-gray-100', text: 'text-gray-700', btnBg: 'bg-gray-500' };
+                  const errorIndex = regularErrors.length + index;
+                  const isExpanded = expandedErrors[errorIndex];
+                  const weekLabel = error.type.replace('문법특강 ', '');
+
+                  return (
                     <div
-                      onClick={() => toggleError(index)}
-                      className="p-4 cursor-pointer hover:bg-gray-100 transition-colors print:hidden"
+                      key={errorIndex}
+                      className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100"
+                      style={{ pageBreakInside: 'avoid' }}
                     >
-                      <div className="flex items-start gap-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${style.bg} ${style.text}`}>
-                          {error.type.startsWith('문법특강') ? error.type.replace('문법특강 ', '') : error.type}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-gray-700 text-sm font-medium truncate">
-                            {error.question.split('\n')[0]}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-emerald-600 text-xs bg-emerald-50 px-2 py-1 rounded">
-                            정답: {error.correctAnswer.length > 20 ? error.correctAnswer.substring(0, 20) + '...' : error.correctAnswer}
+                      <div
+                        onClick={() => toggleError(errorIndex)}
+                        className="p-4 cursor-pointer hover:bg-gray-100 transition-colors print:hidden"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${style.bg} ${style.text}`}>
+                            {weekLabel}
                           </span>
-                          <span className="text-red-500 text-xs bg-red-50 px-2 py-1 rounded">
-                            오답: {error.studentAnswer.length > 20 ? error.studentAnswer.substring(0, 20) + '...' : error.studentAnswer}
-                          </span>
-                          {isExpanded ? (
-                            <ChevronDown className="w-5 h-5 text-gray-400" />
-                          ) : (
-                            <ChevronRight className="w-5 h-5 text-gray-400" />
-                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-gray-700 text-sm font-medium truncate">
+                              {error.question.split('\n')[0]}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-emerald-600 text-xs bg-emerald-50 px-2 py-1 rounded">
+                              정답: {error.correctAnswer.length > 20 ? error.correctAnswer.substring(0, 20) + '...' : error.correctAnswer}
+                            </span>
+                            <span className="text-red-500 text-xs bg-red-50 px-2 py-1 rounded">
+                              오답: {error.studentAnswer.length > 20 ? error.studentAnswer.substring(0, 20) + '...' : error.studentAnswer}
+                            </span>
+                            {isExpanded ? (
+                              <ChevronDown className="w-5 h-5 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="w-5 h-5 text-gray-400" />
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* 펼쳤을 때 또는 프린트 시 항상 표시 */}
-                    <div className={`px-4 pb-4 border-t border-gray-200 bg-white ${isExpanded ? '' : 'hidden print:block'}`}>
-                      <div className="pt-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>
-                            {error.type}
-                          </span>
-                        </div>
-                        <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed bg-gray-50 p-3 rounded-lg">
-                          {error.question}
-                        </p>
-                        <div className="flex gap-4 mt-3">
-                          <div className="flex-1 bg-emerald-50 p-3 rounded-lg">
-                            <span className="text-emerald-700 text-xs font-medium">정답</span>
-                            <p className="text-emerald-800 text-sm mt-1">{error.correctAnswer}</p>
+                      {/* 펼쳤을 때 또는 프린트 시 항상 표시 */}
+                      <div className={`px-4 pb-4 border-t border-gray-200 bg-white ${isExpanded ? '' : 'hidden print:block'}`}>
+                        <div className="pt-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>
+                              {error.type}
+                            </span>
                           </div>
-                          <div className="flex-1 bg-red-50 p-3 rounded-lg">
-                            <span className="text-red-700 text-xs font-medium">학생 답안</span>
-                            <p className="text-red-800 text-sm mt-1">{error.studentAnswer}</p>
+                          <p className="text-gray-700 text-sm whitespace-pre-wrap leading-relaxed bg-gray-50 p-3 rounded-lg">
+                            {error.question}
+                          </p>
+                          <div className="flex gap-4 mt-3">
+                            <div className="flex-1 bg-emerald-50 p-3 rounded-lg">
+                              <span className="text-emerald-700 text-xs font-medium">정답</span>
+                              <p className="text-emerald-800 text-sm mt-1">{error.correctAnswer}</p>
+                            </div>
+                            <div className="flex-1 bg-red-50 p-3 rounded-lg">
+                              <span className="text-red-700 text-xs font-medium">학생 답안</span>
+                              <p className="text-red-800 text-sm mt-1">{error.studentAnswer}</p>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="text-center text-gray-400 mt-6 text-sm print:hidden">
           양영학원 오답노트 분석 시스템 • 2026

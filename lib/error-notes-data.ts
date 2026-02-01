@@ -5,8 +5,7 @@ export const ERROR_TYPES = [
   '배경지식(개념)',
   '문법특강 Week 1',
   '문법특강 Week 2',
-  '문법특강 Week 3',
-  '문법특강 Week 4',
+  '문법특강 Week 3-4',
   '문법특강 Week 5'
 ] as const;
 export type ErrorType = typeof ERROR_TYPES[number];
@@ -67,15 +66,10 @@ export const TYPE_STYLES: Record<string, { bg: string; text: string; btnBg: stri
     text: 'text-indigo-700',
     btnBg: 'bg-indigo-500'
   },
-  '문법특강 Week 3': {
+  '문법특강 Week 3-4': {
     bg: 'bg-cyan-100',
     text: 'text-cyan-700',
     btnBg: 'bg-cyan-500'
-  },
-  '문법특강 Week 4': {
-    bg: 'bg-teal-100',
-    text: 'text-teal-700',
-    btnBg: 'bg-teal-500'
   },
   '문법특강 Week 5': {
     bg: 'bg-sky-100',

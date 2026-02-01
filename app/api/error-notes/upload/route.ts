@@ -38,13 +38,17 @@ function isConceptQuestion(question: string, correctAnswer: string): boolean {
   return hasQuestionPattern || hasConceptAnswer || (isLongPassage && hasBlank);
 }
 
-// 문법특강 Week 추출 함수
+// 문법특강 Week 추출 함수 (Week 3, 4는 Week 3-4로 합침)
 function extractGrammarLectureWeek(examName: string): string | null {
   if (!examName.includes('문법특강')) return null;
 
   const weekMatch = examName.match(/Week\s*(\d)/i);
   if (weekMatch) {
-    const weekNum = weekMatch[1];
+    const weekNum = parseInt(weekMatch[1]);
+    // Week 3, 4는 Week 3-4로 합침
+    if (weekNum === 3 || weekNum === 4) {
+      return '문법특강 Week 3-4';
+    }
     return `문법특강 Week ${weekNum}`;
   }
   return null;
