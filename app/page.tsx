@@ -1027,7 +1027,7 @@ export default function ReportCard() {
 
       {/* Control Panel */}
       <div className="max-w-7xl mx-auto px-4 py-6 print:hidden">
-      <div className="bg-white rounded-xl shadow-sm p-4 mb-6 print:hidden">
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 print:hidden">
         {/* Left Section: Search and Student Selection */}
         <div className="flex items-center gap-3 mb-4 w-full">
           <Users className="w-5 h-5 text-slate-500 flex-shrink-0" />
@@ -1282,7 +1282,6 @@ export default function ReportCard() {
             )}
           </div>
         </div>
-      </div>
       </div>
       </div>
 
