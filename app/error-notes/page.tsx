@@ -253,7 +253,7 @@ export default function ErrorNotesPage() {
                         <div className="text-gray-400 text-xs">독해</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-indigo-500 font-bold">{conceptErrors}</div>
+                        <div className="text-blue-500 font-bold">{conceptErrors}</div>
                         <div className="text-gray-400 text-xs">개념</div>
                       </div>
                     </div>
@@ -269,7 +269,7 @@ export default function ErrorNotesPage() {
                         <div className="flex-1 h-1.5 bg-amber-400 rounded-full" />
                       )}
                       {conceptErrors > 0 && (
-                        <div className="flex-1 h-1.5 bg-indigo-400 rounded-full" />
+                        <div className="flex-1 h-1.5 bg-blue-400 rounded-full" />
                       )}
                     </div>
                   </div>

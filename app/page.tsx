@@ -1225,7 +1225,7 @@ export default function ReportCard() {
             <button
               onClick={handleCommentExport}
               disabled={isImageDownloading || isBatchDownloading || isPdfDownloading || students.length === 0}
-              className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FileSpreadsheet className="w-4 h-4" />
               코멘트 Excel 내보내기
@@ -1248,7 +1248,7 @@ export default function ReportCard() {
                 setIsImageMenuOpen(false);
               }}
               disabled={isRefining || isImageDownloading || isBatchDownloading || isPdfDownloading}
-              className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Sparkles className="w-4 h-4" />
               AI 코멘트 교정
@@ -1291,7 +1291,7 @@ export default function ReportCard() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200] print:hidden">
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
             <div className="flex items-center gap-3 mb-4">
-              <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
               <h3 className="text-lg font-semibold text-slate-800">AI 코멘트 교정 진행 중</h3>
             </div>
 
@@ -1303,7 +1303,7 @@ export default function ReportCard() {
               </div>
               <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-purple-600 h-full transition-all duration-300 ease-out rounded-full"
+                  className="bg-blue-600 h-full transition-all duration-300 ease-out rounded-full"
                   style={{ width: `${(refiningProgress.current / refiningProgress.total) * 100}%` }}
                 />
               </div>
