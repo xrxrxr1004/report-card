@@ -26,11 +26,11 @@ export default function ErrorNotesUI({ student }: ErrorNotesUIProps) {
     ? student.errors
     : student.errors.filter(e => e.type === typeFilter);
 
-  // 점수 계산
+  // 점수 계산 (최소 0%)
   const scores = {
-    vocabulary: student.errorsByType['어휘'] > 0 ? Math.round((1 - student.errorsByType['어휘'] / 50) * 100) : 100,
-    grammar: student.errorsByType['어법(문법)'] > 0 ? Math.round((1 - student.errorsByType['어법(문법)'] / 30) * 100) : 100,
-    reading: student.errorsByType['종합독해'] > 0 ? Math.round((1 - student.errorsByType['종합독해'] / 50) * 100) : 100,
+    vocabulary: student.errorsByType['어휘'] > 0 ? Math.max(0, Math.round((1 - student.errorsByType['어휘'] / 50) * 100)) : 100,
+    grammar: student.errorsByType['어법(문법)'] > 0 ? Math.max(0, Math.round((1 - student.errorsByType['어법(문법)'] / 50) * 100)) : 100,
+    reading: student.errorsByType['종합독해'] > 0 ? Math.max(0, Math.round((1 - student.errorsByType['종합독해'] / 50) * 100)) : 100,
   };
 
   return (
