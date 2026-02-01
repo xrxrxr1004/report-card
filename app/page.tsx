@@ -998,32 +998,36 @@ export default function ReportCard() {
   }
 
   return (
-    <main className="min-h-screen bg-white py-12 px-4 print:bg-white print:p-0">
-
-      {/* 성적표 유형 선택 헤더 */}
-      <div className="max-w-[210mm] mx-auto mb-4 flex items-center justify-between print:hidden">
-        <h1 className="text-xl font-bold text-slate-800">양영학원 고등 영어과 성적표</h1>
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md text-sm font-medium">
-            주간 성적표
-          </span>
-          <a
-            href="/internal-exam"
-            className="px-3 py-1.5 bg-white border border-slate-300 text-slate-600 rounded-md text-sm font-medium hover:bg-slate-50 transition-colors"
-          >
-            내신기출 성적표
-          </a>
-          <a
-            href="/error-notes"
-            className="px-3 py-1.5 bg-white border border-slate-300 text-slate-600 rounded-md text-sm font-medium hover:bg-slate-50 transition-colors"
-          >
-            오답노트
-          </a>
+    <main className="min-h-screen bg-gray-50 print:bg-white print:p-0">
+      {/* 헤더 - 내신기출 스타일 */}
+      <header className="bg-white shadow-sm border-b print:hidden">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">주간 성적표</h1>
+              <p className="text-sm text-gray-500 mt-1">양영학원 고등 영어과</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <a
+                href="/internal-exam"
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                내신기출 성적표
+              </a>
+              <a
+                href="/error-notes"
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                오답노트
+              </a>
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
       {/* Control Panel */}
-      <div className="max-w-[210mm] mx-auto mb-8 bg-white p-4 rounded-lg shadow-sm print:hidden">
+      <div className="max-w-7xl mx-auto px-4 py-6 print:hidden">
+      <div className="bg-white rounded-xl shadow-sm p-4 mb-6 print:hidden">
         {/* Left Section: Search and Student Selection */}
         <div className="flex items-center gap-3 mb-4 w-full">
           <Users className="w-5 h-5 text-slate-500 flex-shrink-0" />
@@ -1278,6 +1282,8 @@ export default function ReportCard() {
             )}
           </div>
         </div>
+      </div>
+      </div>
       </div>
 
       {/* 코멘트 교정 진행 상황 모달 */}

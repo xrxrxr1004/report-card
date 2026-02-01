@@ -107,45 +107,47 @@ export default function ErrorNotesPage() {
   // 학생 목록 보기
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">오답노트</h1>
-            <p className="text-gray-500 text-sm">양영학원 고등 영어과</p>
-          </div>
-          <div className="flex gap-2">
-            <a
-              href="/"
-              className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              주간 성적표
-            </a>
-            <a
-              href="/internal-exam"
-              className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              내신기출
-            </a>
-            <button className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
-              <RefreshCw className="w-4 h-4" />
-              새로고침
-            </button>
-            <label className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg cursor-pointer hover:bg-emerald-600 transition-colors">
-              <Upload className="w-4 h-4" />
-              엑셀 업로드
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
+      {/* 헤더 - 내신기출 스타일 */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">오답노트</h1>
+              <p className="text-sm text-gray-500 mt-1">양영학원 고등 영어과</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                <RefreshCw className="w-4 h-4" />
+                새로고침
+              </button>
+              <label className="px-4 py-2 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition-colors flex items-center gap-2">
+                <Upload className="w-4 h-4" />
+                엑셀 업로드
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+              <a
+                href="/"
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                주간 성적표
+              </a>
+              <a
+                href="/internal-exam"
+                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                내신기출
+              </a>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         {/* 통계 */}
         <div className="mb-6 text-gray-600">
           총 {students.length}명 • 전체 오답 {students.reduce((acc, s) => acc + s.totalErrors, 0)}개
