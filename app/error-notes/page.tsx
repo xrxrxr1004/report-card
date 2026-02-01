@@ -72,8 +72,8 @@ export default function ErrorNotesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-600 text-lg">로딩 중...</div>
+      <div className="min-h-screen bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
+        <div className="text-white text-lg">로딩 중...</div>
       </div>
     );
   }
@@ -86,14 +86,14 @@ export default function ErrorNotesPage() {
         <div className="fixed top-4 left-4 z-50 flex gap-3 print:hidden">
           <button
             onClick={() => setSelectedStudent(null)}
-            className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-full shadow-lg hover:bg-blue-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white text-orange-500 rounded-full shadow-lg hover:bg-orange-50 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             목록으로
           </button>
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-full shadow-lg hover:bg-blue-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white text-orange-500 rounded-full shadow-lg hover:bg-orange-50 transition-colors"
           >
             <Printer className="w-4 h-4" />
             PDF 출력
@@ -106,11 +106,11 @@ export default function ErrorNotesPage() {
 
   // 학생 목록 보기
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-orange-500 to-orange-600 p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center text-gray-800 mb-6">
-          <h1 className="text-3xl font-bold tracking-wider">학생 오답노트</h1>
-          <p className="text-gray-500 mt-2">
+        <div className="text-center text-white mb-6">
+          <h1 className="text-3xl font-bold tracking-wider">STUDENT ERROR NOTES</h1>
+          <p className="text-white/80 mt-2">
             총 {students.length}명 • 전체 오답 {students.reduce((acc, s) => acc + s.totalErrors, 0)}개
           </p>
         </div>
@@ -121,7 +121,7 @@ export default function ErrorNotesPage() {
             <button
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                filter === 'all' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                filter === 'all' ? 'bg-white text-orange-500' : 'bg-white/20 text-white hover:bg-white/30'
               }`}
             >
               전체
@@ -131,7 +131,7 @@ export default function ErrorNotesPage() {
                 key={school}
                 onClick={() => setFilter(school)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  filter === school ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  filter === school ? 'bg-white text-orange-500' : 'bg-white/20 text-white hover:bg-white/30'
                 }`}
               >
                 {school}
@@ -143,14 +143,14 @@ export default function ErrorNotesPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 rounded-full text-sm bg-white text-gray-700 border border-gray-200 focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 rounded-full text-sm bg-white/20 text-white border-0 focus:ring-2 focus:ring-white/50"
             >
-              <option value="name">이름순</option>
-              <option value="errors">오답 많은 순</option>
-              <option value="school">학교별</option>
+              <option value="name" className="text-gray-800">이름순</option>
+              <option value="errors" className="text-gray-800">오답 많은 순</option>
+              <option value="school" className="text-gray-800">학교별</option>
             </select>
 
-            <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full cursor-pointer hover:bg-blue-700 transition-colors">
+            <label className="flex items-center gap-2 px-4 py-2 bg-white text-orange-500 rounded-full cursor-pointer hover:bg-orange-50 transition-colors">
               <Upload className="w-4 h-4" />
               엑셀 업로드
               <input
@@ -166,8 +166,8 @@ export default function ErrorNotesPage() {
         {/* 학생 카드 그리드 */}
         {filteredStudents.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-gray-500 text-lg mb-4">등록된 학생이 없습니다.</p>
-            <label className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-full cursor-pointer hover:bg-blue-700 transition-colors">
+            <p className="text-white/80 text-lg mb-4">등록된 학생이 없습니다.</p>
+            <label className="inline-flex items-center gap-2 px-6 py-3 bg-white text-orange-500 rounded-full cursor-pointer hover:bg-orange-50 transition-colors">
               <Upload className="w-5 h-5" />
               엑셀 파일 업로드
               <input
@@ -192,7 +192,7 @@ export default function ErrorNotesPage() {
                   onClick={() => setSelectedStudent(student)}
                   className="bg-white rounded-2xl shadow-lg overflow-hidden cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all duration-200"
                 >
-                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 py-3 px-4">
+                  <div className="bg-gradient-to-r from-orange-400 to-orange-500 py-3 px-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                         <span className="text-2xl">👨‍🎓</span>
@@ -207,7 +207,7 @@ export default function ErrorNotesPage() {
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-gray-500 text-sm">총 오답</span>
-                      <span className="text-blue-600 font-bold text-xl">{student.totalErrors}개</span>
+                      <span className="text-orange-500 font-bold text-xl">{student.totalErrors}개</span>
                     </div>
 
                     <div className="grid grid-cols-4 gap-2">
@@ -250,7 +250,7 @@ export default function ErrorNotesPage() {
           </div>
         )}
 
-        <div className="text-center text-gray-400 mt-8 text-sm">
+        <div className="text-center text-white/70 mt-8 text-sm">
           양영학원 오답노트 분석 시스템 • 2026
         </div>
       </div>
