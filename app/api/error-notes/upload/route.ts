@@ -75,8 +75,14 @@ export async function POST(request: NextRequest) {
       const correctIdx = headers.findIndex((h: string) => h?.includes('정답') || h?.includes('Correct'));
       const studentIdx = headers.findIndex((h: string) => h?.includes('학생') || h?.includes('Student') || h?.includes('답안'));
       const typeIdx = headers.findIndex((h: string) => h?.includes('유형') || h?.includes('Type'));
+      const pointsIdx = headers.findIndex((h: string) => h?.includes('배점') || h?.includes('점수') || h?.includes('Points'));
+      const attemptedIdx = headers.findIndex((h: string) => h?.includes('응시') || h?.includes('Attempted'));
 
       const errors: ErrorItem[] = [];
+      let totalPossiblePoints = 0;
+      let attemptedPoints = 0;
+      let earnedPoints = 0;
+      let unattemptedPoints = 0;
 
       for (let i = 1; i < jsonData.length; i++) {
         const row = jsonData[i];
@@ -86,6 +92,26 @@ export async function POST(request: NextRequest) {
         const correctAnswer = String(row[correctIdx] || '');
         const studentAnswer = String(row[studentIdx] || '');
         let type = String(row[typeIdx] || '어휘');
+
+        // 배점 파싱 (기본값 1점)
+        const points = pointsIdx >= 0 ? Number(row[pointsIdx]) || 1 : 1;
+        // 응시 여부 파싱 (기본값: true, 'X', '미응시', 'N', 0은 미응시로 처리)
+        const attemptedRaw = attemptedIdx >= 0 ? String(row[attemptedIdx] || '') : '';
+        const isUnattempted = attemptedRaw === 'X' || attemptedRaw === '미응시' || attemptedRaw === 'N' || attemptedRaw === '0' || attemptedRaw.toLowerCase() === 'false';
+
+        totalPossiblePoints += points;
+
+        if (isUnattempted) {
+          unattemptedPoints += points;
+        } else {
+          attemptedPoints += points;
+          // 정답이면 획득점수 추가 (오답노트는 오답만 있으므로 여기선 0)
+          // 하지만 별도의 '정오답' 컬럼이 있을 수 있으므로 체크
+          const isCorrect = studentAnswer === correctAnswer;
+          if (isCorrect) {
+            earnedPoints += points;
+          }
+        }
 
         // 타입 재분류
         type = classifyType(question, correctAnswer, type);
@@ -118,7 +144,11 @@ export async function POST(request: NextRequest) {
           school: '',
           totalErrors: errors.length,
           errorsByType,
-          errors
+          errors,
+          totalPossiblePoints,
+          attemptedPoints,
+          earnedPoints,
+          unattemptedPoints
         });
       }
     }

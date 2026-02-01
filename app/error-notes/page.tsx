@@ -239,6 +239,36 @@ export default function ErrorNotesPage() {
                       <span className="text-blue-600 font-bold text-xl">{student.totalErrors}개</span>
                     </div>
 
+                    {/* 점수 현황 (데이터가 있는 경우) */}
+                    {student.totalPossiblePoints && student.totalPossiblePoints > 0 && (
+                      <div className="mb-3 p-2 bg-gray-50 rounded-lg">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-gray-500">득점률</span>
+                          <span className="font-medium">
+                            <span className="text-emerald-600">{student.earnedPoints}점</span>
+                            <span className="text-gray-400"> / {student.attemptedPoints}점</span>
+                            {student.unattemptedPoints && student.unattemptedPoints > 0 && (
+                              <span className="text-gray-300 ml-1">(미응시 {student.unattemptedPoints}점)</span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden flex">
+                          <div
+                            className="bg-emerald-500 h-full"
+                            style={{ width: `${(student.earnedPoints || 0) / student.totalPossiblePoints * 100}%` }}
+                          />
+                          <div
+                            className="bg-red-400 h-full"
+                            style={{ width: `${((student.attemptedPoints || 0) - (student.earnedPoints || 0)) / student.totalPossiblePoints * 100}%` }}
+                          />
+                          <div
+                            className="bg-gray-300 h-full"
+                            style={{ width: `${(student.unattemptedPoints || 0) / student.totalPossiblePoints * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-4 gap-2">
                       <div className="text-center">
                         <div className="text-emerald-500 font-bold">{vocabErrors}</div>

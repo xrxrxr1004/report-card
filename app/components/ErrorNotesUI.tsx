@@ -99,13 +99,68 @@ export default function ErrorNotesUI({ student }: ErrorNotesUIProps) {
               </div>
             </div>
 
+            {/* 점수 현황 (점수 데이터가 있는 경우) */}
+            {student.totalPossiblePoints && student.totalPossiblePoints > 0 && (
+              <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <h3 className="text-blue-600 font-bold text-sm tracking-wider mb-3">📊 점수 현황</h3>
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <div className="text-gray-500 text-xs mb-1">전체 배점</div>
+                    <div className="text-xl font-bold text-gray-700">{student.totalPossiblePoints}점</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-gray-500 text-xs mb-1">응시 점수</div>
+                    <div className="text-xl font-bold text-blue-600">{student.attemptedPoints}점</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-gray-500 text-xs mb-1">획득 점수</div>
+                    <div className="text-xl font-bold text-emerald-600">{student.earnedPoints}점</div>
+                    <div className="text-xs text-gray-400">
+                      ({student.attemptedPoints && student.attemptedPoints > 0
+                        ? Math.round((student.earnedPoints || 0) / student.attemptedPoints * 100)
+                        : 0}%)
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-gray-500 text-xs mb-1">미응시</div>
+                    <div className="text-xl font-bold text-gray-400">{student.unattemptedPoints}점</div>
+                  </div>
+                </div>
+                {/* 점수 바 */}
+                <div className="mt-3 h-3 bg-gray-200 rounded-full overflow-hidden flex">
+                  <div
+                    className="bg-emerald-500 h-full"
+                    style={{ width: `${(student.earnedPoints || 0) / student.totalPossiblePoints * 100}%` }}
+                    title={`획득: ${student.earnedPoints}점`}
+                  />
+                  <div
+                    className="bg-red-400 h-full"
+                    style={{ width: `${((student.attemptedPoints || 0) - (student.earnedPoints || 0)) / student.totalPossiblePoints * 100}%` }}
+                    title={`오답: ${(student.attemptedPoints || 0) - (student.earnedPoints || 0)}점`}
+                  />
+                  <div
+                    className="bg-gray-300 h-full"
+                    style={{ width: `${(student.unattemptedPoints || 0) / student.totalPossiblePoints * 100}%` }}
+                    title={`미응시: ${student.unattemptedPoints}점`}
+                  />
+                </div>
+                <div className="flex justify-center gap-4 mt-2 text-xs">
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-emerald-500 rounded"></span> 획득</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-400 rounded"></span> 오답</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 bg-gray-300 rounded"></span> 미응시</span>
+                </div>
+              </div>
+            )}
+
             {/* 통계 카드 */}
             <div className="grid grid-cols-5 gap-3 mt-6">
               <div className="bg-blue-50 rounded-xl p-3 text-center">
                 <div className="text-2xl font-bold text-blue-600">
-                  {Math.round((1 - student.totalErrors / 131) * 100)}%
+                  {student.attemptedPoints && student.attemptedPoints > 0
+                    ? Math.round((student.earnedPoints || 0) / student.attemptedPoints * 100)
+                    : Math.max(0, Math.round((1 - student.totalErrors / 131) * 100))}%
                 </div>
-                <div className="text-gray-500 text-xs mt-1">전체 득점률</div>
+                <div className="text-gray-500 text-xs mt-1">응시 득점률</div>
               </div>
               <div className="bg-emerald-50 rounded-xl p-3 text-center">
                 <div className="text-2xl font-bold text-emerald-500">{student.errorsByType['어휘']}</div>

@@ -20,6 +20,11 @@ export interface StudentErrorData {
     '배경지식(개념)': number;
   };
   errors: ErrorItem[];
+  // 점수 관련 필드 (선택적 - 기존 데이터와 호환)
+  totalPossiblePoints?: number;  // 전체 가능 점수 (모든 문제)
+  attemptedPoints?: number;      // 응시한 문제의 총 점수
+  earnedPoints?: number;         // 획득한 점수
+  unattemptedPoints?: number;    // 미응시 점수
 }
 
 // 타입별 색상 스타일
