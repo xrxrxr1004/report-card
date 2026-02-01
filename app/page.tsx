@@ -1013,6 +1013,12 @@ export default function ReportCard() {
           >
             내신기출 성적표
           </a>
+          <a
+            href="/error-notes"
+            className="px-3 py-1.5 bg-white border border-slate-300 text-slate-600 rounded-md text-sm font-medium hover:bg-slate-50 transition-colors"
+          >
+            오답노트
+          </a>
         </div>
       </div>
 

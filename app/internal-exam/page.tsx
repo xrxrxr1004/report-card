@@ -280,7 +280,13 @@ export default function InternalExamPage() {
                                 href="/"
                                 className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                             >
-                                주간 성적표로 이동
+                                주간 성적표
+                            </a>
+                            <a
+                                href="/error-notes"
+                                className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                                오답노트
                             </a>
                         </div>
                     </div>

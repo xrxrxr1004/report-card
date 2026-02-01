@@ -115,6 +115,18 @@ export default function ErrorNotesPage() {
             <p className="text-gray-500 text-sm">양영학원 고등 영어과</p>
           </div>
           <div className="flex gap-2">
+            <a
+              href="/"
+              className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              주간 성적표
+            </a>
+            <a
+              href="/internal-exam"
+              className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              내신기출
+            </a>
             <button className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
               <RefreshCw className="w-4 h-4" />
               새로고침
