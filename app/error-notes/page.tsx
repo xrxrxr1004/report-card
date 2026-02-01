@@ -160,7 +160,7 @@ export default function ErrorNotesPage() {
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 filter === 'all'
-                  ? 'bg-indigo-500 text-white'
+                  ? 'bg-blue-500 text-white'
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
               }`}
             >
@@ -172,7 +172,7 @@ export default function ErrorNotesPage() {
                 onClick={() => setFilter(school)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   filter === school
-                    ? 'bg-indigo-500 text-white'
+                    ? 'bg-blue-500 text-white'
                     : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
               >
@@ -184,7 +184,7 @@ export default function ErrorNotesPage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="px-4 py-2 rounded-lg text-sm bg-white text-gray-700 border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="px-4 py-2 rounded-lg text-sm bg-white text-gray-700 border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="name">이름순</option>
             <option value="errors">오답 많은 순</option>
@@ -219,16 +219,16 @@ export default function ErrorNotesPage() {
                 <div
                   key={student.id}
                   onClick={() => setSelectedStudent(student)}
-                  className="bg-white rounded-xl border border-gray-200 overflow-hidden cursor-pointer hover:shadow-lg hover:border-indigo-300 transition-all duration-200"
+                  className="bg-white rounded-xl border border-gray-200 overflow-hidden cursor-pointer hover:shadow-lg hover:border-blue-300 transition-all duration-200"
                 >
-                  <div className="bg-gradient-to-r from-indigo-500 to-purple-500 py-3 px-4">
+                  <div className="bg-blue-50 border-b border-blue-200 py-3 px-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                         <span className="text-xl">👨‍🎓</span>
                       </div>
                       <div>
-                        <h3 className="text-white font-bold">{student.name}</h3>
-                        <p className="text-white/80 text-sm">{student.class}반 · {student.school}</p>
+                        <h3 className="text-gray-900 font-bold">{student.name}</h3>
+                        <p className="text-gray-500 text-sm">{student.class}반 · {student.school}</p>
                       </div>
                     </div>
                   </div>
@@ -236,7 +236,7 @@ export default function ErrorNotesPage() {
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-gray-500 text-sm">총 오답</span>
-                      <span className="text-indigo-600 font-bold text-xl">{student.totalErrors}개</span>
+                      <span className="text-blue-600 font-bold text-xl">{student.totalErrors}개</span>
                     </div>
 
                     <div className="grid grid-cols-4 gap-2">
@@ -253,7 +253,7 @@ export default function ErrorNotesPage() {
                         <div className="text-gray-400 text-xs">독해</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-purple-500 font-bold">{conceptErrors}</div>
+                        <div className="text-indigo-500 font-bold">{conceptErrors}</div>
                         <div className="text-gray-400 text-xs">개념</div>
                       </div>
                     </div>
@@ -269,7 +269,7 @@ export default function ErrorNotesPage() {
                         <div className="flex-1 h-1.5 bg-amber-400 rounded-full" />
                       )}
                       {conceptErrors > 0 && (
-                        <div className="flex-1 h-1.5 bg-purple-400 rounded-full" />
+                        <div className="flex-1 h-1.5 bg-indigo-400 rounded-full" />
                       )}
                     </div>
                   </div>

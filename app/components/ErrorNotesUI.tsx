@@ -37,22 +37,22 @@ export default function ErrorNotesUI({ student }: ErrorNotesUIProps) {
     <div className="min-h-screen bg-gray-50 p-6 pt-20">
       <div className="max-w-5xl mx-auto">
         {/* 학생 카드 헤더 */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6 border border-gray-200">
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 py-4 px-6">
-            <p className="text-white text-center text-lg font-medium">"{student.name} 학생의 오답노트"</p>
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-6 border border-gray-200">
+          <div className="bg-blue-50 border-b border-blue-200 py-4 px-6">
+            <p className="text-blue-800 text-center text-lg font-medium">{student.name} 학생의 오답노트</p>
           </div>
 
           <div className="p-6">
             <div className="flex gap-6">
               <div className="flex-shrink-0">
-                <div className="w-28 h-28 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center shadow-lg">
+                <div className="w-28 h-28 bg-blue-100 rounded-full flex items-center justify-center">
                   <div className="text-5xl">👨‍🎓</div>
                 </div>
               </div>
 
               <div className="flex-1 grid grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-indigo-600 font-bold text-sm tracking-wider mb-3">STUDENT INFO</h3>
+                  <h3 className="text-blue-600 font-bold text-sm tracking-wider mb-3">STUDENT INFO</h3>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="text-gray-400 text-sm w-16">이름</span>
@@ -68,13 +68,13 @@ export default function ErrorNotesUI({ student }: ErrorNotesUIProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-gray-400 text-sm w-16">총 오답</span>
-                      <span className="text-indigo-600 font-bold">{student.totalErrors}개</span>
+                      <span className="text-blue-600 font-bold">{student.totalErrors}개</span>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-indigo-600 font-bold text-sm tracking-wider mb-3">SCORE OVERVIEW</h3>
+                  <h3 className="text-blue-600 font-bold text-sm tracking-wider mb-3">SCORE OVERVIEW</h3>
                   <div className="space-y-3">
                     {[
                       ['어휘', scores.vocabulary],
@@ -101,8 +101,8 @@ export default function ErrorNotesUI({ student }: ErrorNotesUIProps) {
 
             {/* 통계 카드 */}
             <div className="grid grid-cols-5 gap-3 mt-6">
-              <div className="bg-indigo-50 rounded-xl p-3 text-center">
-                <div className="text-2xl font-bold text-indigo-600">
+              <div className="bg-blue-50 rounded-xl p-3 text-center">
+                <div className="text-2xl font-bold text-blue-600">
                   {Math.round((1 - student.totalErrors / 131) * 100)}%
                 </div>
                 <div className="text-gray-500 text-xs mt-1">전체 득점률</div>
@@ -119,8 +119,8 @@ export default function ErrorNotesUI({ student }: ErrorNotesUIProps) {
                 <div className="text-2xl font-bold text-amber-500">{student.errorsByType['종합독해']}</div>
                 <div className="text-gray-500 text-xs mt-1">독해 오답</div>
               </div>
-              <div className="bg-purple-50 rounded-xl p-3 text-center">
-                <div className="text-2xl font-bold text-purple-500">{student.errorsByType['배경지식(개념)']}</div>
+              <div className="bg-amber-50 rounded-xl p-3 text-center">
+                <div className="text-2xl font-bold text-amber-500">{student.errorsByType['배경지식(개념)']}</div>
                 <div className="text-gray-500 text-xs mt-1">개념 오답</div>
               </div>
             </div>
@@ -131,13 +131,13 @@ export default function ErrorNotesUI({ student }: ErrorNotesUIProps) {
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200">
           <div className="p-6">
             <div className="flex items-center justify-between mb-4 print:hidden">
-              <h3 className="text-indigo-600 font-bold text-sm tracking-wider">
+              <h3 className="text-blue-600 font-bold text-sm tracking-wider">
                 📝 전체 오답 목록 ({filteredErrors.length}개)
               </h3>
               <div className="flex gap-2 flex-wrap">
                 {['all', ...ERROR_TYPES].map(t => {
                   const style = t === 'all'
-                    ? { btnBg: 'bg-indigo-500', btnHover: 'hover:bg-indigo-600' }
+                    ? { btnBg: 'bg-blue-500', btnHover: 'hover:bg-blue-600' }
                     : TYPE_STYLES[t];
                   return (
                     <button
