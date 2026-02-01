@@ -1,10 +1,22 @@
-// 오답노트 데이터 타입 정의
+export const ERROR_TYPES = [
+  '어휘',
+  '어법(문법)',
+  '종합독해',
+  '배경지식(개념)',
+  '문법특강 Week 1',
+  '문법특강 Week 2',
+  '문법특강 Week 3',
+  '문법특강 Week 4',
+  '문법특강 Week 5'
+] as const;
+export type ErrorType = typeof ERROR_TYPES[number];
 
 export interface ErrorItem {
   question: string;
   correctAnswer: string;
   studentAnswer: string;
-  type: '어휘' | '어법(문법)' | '종합독해' | '배경지식(개념)';
+  type: ErrorType;
+  examName?: string;  // 시험명 (문법특강 Week 구분용)
 }
 
 export interface StudentErrorData {
@@ -13,46 +25,66 @@ export interface StudentErrorData {
   class: string;
   school: string;
   totalErrors: number;
-  errorsByType: {
-    '어휘': number;
-    '어법(문법)': number;
-    '종합독해': number;
-    '배경지식(개념)': number;
-  };
+  errorsByType: Record<string, number>;
   errors: ErrorItem[];
-  // 점수 관련 필드 (선택적 - 기존 데이터와 호환)
-  totalPossiblePoints?: number;  // 전체 가능 점수 (모든 문제)
-  attemptedPoints?: number;      // 응시한 문제의 총 점수
-  earnedPoints?: number;         // 획득한 점수
-  unattemptedPoints?: number;    // 미응시 점수
+  // 점수 관련 필드
+  totalPossiblePoints?: number;
+  attemptedPoints?: number;
+  earnedPoints?: number;
+  unattemptedPoints?: number;
+  // 문법특강 수강 여부
+  hasGrammarLecture?: boolean;
 }
 
-// 타입별 색상 스타일
-export const TYPE_STYLES: Record<string, { bg: string; text: string; btnBg: string; btnHover: string }> = {
+export const TYPE_STYLES: Record<string, { bg: string; text: string; btnBg: string }> = {
   '어휘': {
-    bg: 'bg-green-100',
-    text: 'text-green-700',
-    btnBg: 'bg-green-500',
-    btnHover: 'hover:bg-green-600'
+    bg: 'bg-emerald-100',
+    text: 'text-emerald-700',
+    btnBg: 'bg-emerald-500'
   },
   '어법(문법)': {
     bg: 'bg-red-100',
     text: 'text-red-700',
-    btnBg: 'bg-red-500',
-    btnHover: 'hover:bg-red-600'
+    btnBg: 'bg-red-500'
   },
   '종합독해': {
     bg: 'bg-amber-100',
     text: 'text-amber-700',
-    btnBg: 'bg-amber-500',
-    btnHover: 'hover:bg-amber-600'
+    btnBg: 'bg-amber-500'
   },
   '배경지식(개념)': {
     bg: 'bg-purple-100',
     text: 'text-purple-700',
-    btnBg: 'bg-purple-500',
-    btnHover: 'hover:bg-purple-600'
+    btnBg: 'bg-purple-500'
+  },
+  '문법특강 Week 1': {
+    bg: 'bg-blue-100',
+    text: 'text-blue-700',
+    btnBg: 'bg-blue-500'
+  },
+  '문법특강 Week 2': {
+    bg: 'bg-indigo-100',
+    text: 'text-indigo-700',
+    btnBg: 'bg-indigo-500'
+  },
+  '문법특강 Week 3': {
+    bg: 'bg-cyan-100',
+    text: 'text-cyan-700',
+    btnBg: 'bg-cyan-500'
+  },
+  '문법특강 Week 4': {
+    bg: 'bg-teal-100',
+    text: 'text-teal-700',
+    btnBg: 'bg-teal-500'
+  },
+  '문법특강 Week 5': {
+    bg: 'bg-sky-100',
+    text: 'text-sky-700',
+    btnBg: 'bg-sky-500'
   }
 };
 
-export const ERROR_TYPES = ['어휘', '어법(문법)', '종합독해', '배경지식(개념)'] as const;
+// 문법특강 Week 타입만 필터링
+export const GRAMMAR_LECTURE_TYPES = ERROR_TYPES.filter(t => t.startsWith('문법특강'));
+// 일반 타입만 필터링
+export const REGULAR_TYPES = ERROR_TYPES.filter(t => !t.startsWith('문법특강'));

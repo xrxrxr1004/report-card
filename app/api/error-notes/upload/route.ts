@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
-import { StudentErrorData, ErrorItem, ERROR_TYPES } from '@/lib/error-notes-data';
+import { StudentErrorData, ErrorItem, ERROR_TYPES, GRAMMAR_LECTURE_TYPES } from '@/lib/error-notes-data';
 
 // 개념 문제인지 판단하는 함수
 function isConceptQuestion(question: string, correctAnswer: string): boolean {
@@ -38,8 +38,26 @@ function isConceptQuestion(question: string, correctAnswer: string): boolean {
   return hasQuestionPattern || hasConceptAnswer || (isLongPassage && hasBlank);
 }
 
+// 문법특강 Week 추출 함수
+function extractGrammarLectureWeek(examName: string): string | null {
+  if (!examName.includes('문법특강')) return null;
+
+  const weekMatch = examName.match(/Week\s*(\d)/i);
+  if (weekMatch) {
+    const weekNum = weekMatch[1];
+    return `문법특강 Week ${weekNum}`;
+  }
+  return null;
+}
+
 // 타입 분류 함수
-function classifyType(question: string, correctAnswer: string, originalType: string): string {
+function classifyType(question: string, correctAnswer: string, originalType: string, examName: string): string {
+  // 문법특강 시험인 경우 Week별로 분류
+  const grammarWeek = extractGrammarLectureWeek(examName);
+  if (grammarWeek) {
+    return grammarWeek;
+  }
+
   // 독해개념은 배경지식(개념)으로 매핑
   if (originalType === '독해개념') {
     return '배경지식(개념)';
@@ -56,6 +74,10 @@ function parseGradeAnalysis(workbook: XLSX.WorkBook): Map<string, {
   totalPossible: number;
   earned: number;
   rate: number;
+  vocabTotal: number;
+  vocabEarned: number;
+  grammarTotal: number;
+  grammarEarned: number;
 }> {
   const gradeMap = new Map();
 
@@ -64,22 +86,28 @@ function parseGradeAnalysis(workbook: XLSX.WorkBook): Map<string, {
 
   const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
 
-  // 데이터 행 파싱 (숫자로 시작하는 행)
   for (let i = 0; i < data.length; i++) {
     const row = data[i];
     if (!row || row.length < 5) continue;
 
-    // 숫자로 시작하는 행이면 데이터 행
     if (typeof row[0] === 'number' && typeof row[1] === 'string') {
       const name = row[1];
       const totalPossible = Number(row[2]) || 0;
       const earned = Number(row[3]) || 0;
       const rate = Number(row[4]) || 0;
+      const vocabTotal = Number(row[5]) || 0;
+      const vocabEarned = Number(row[6]) || 0;
+      const grammarTotal = Number(row[8]) || 0;
+      const grammarEarned = Number(row[9]) || 0;
 
       gradeMap.set(name, {
         totalPossible,
         earned,
-        rate
+        rate,
+        vocabTotal,
+        vocabEarned,
+        grammarTotal,
+        grammarEarned
       });
     }
   }
@@ -89,16 +117,23 @@ function parseGradeAnalysis(workbook: XLSX.WorkBook): Map<string, {
 
 // 개별 학생 오답 시트에서 상단 요약 점수 파싱
 function parseStudentSummary(sheet: XLSX.WorkSheet): {
+  vocab: { total: number; earned: number; errors: number };
+  grammar: { total: number; earned: number; errors: number };
+  reading: { total: number; earned: number; errors: number };
+  concept: { total: number; earned: number; errors: number };
   overall: { total: number; earned: number; errors: number };
 } {
   const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
 
   const result = {
+    vocab: { total: 0, earned: 0, errors: 0 },
+    grammar: { total: 0, earned: 0, errors: 0 },
+    reading: { total: 0, earned: 0, errors: 0 },
+    concept: { total: 0, earned: 0, errors: 0 },
     overall: { total: 0, earned: 0, errors: 0 }
   };
 
-  // 상단 요약 테이블 파싱 (행 2~10 정도)
-  for (let i = 2; i < 12; i++) {
+  for (let i = 2; i < 10; i++) {
     const row = data[i];
     if (!row || row.length < 5) continue;
 
@@ -107,9 +142,16 @@ function parseStudentSummary(sheet: XLSX.WorkSheet): {
     const earned = Number(row[2]) || 0;
     const errors = Number(row[4]) || 0;
 
-    if (type === '전체') {
+    if (type === '어휘') {
+      result.vocab = { total, earned, errors };
+    } else if (type === '어법(문법)') {
+      result.grammar = { total, earned, errors };
+    } else if (type === '종합독해') {
+      result.reading = { total, earned, errors };
+    } else if (type === '독해개념' || type.includes('개념')) {
+      result.concept = { total, earned, errors };
+    } else if (type === '전체') {
       result.overall = { total, earned, errors };
-      break;
     }
   }
 
@@ -128,12 +170,9 @@ export async function POST(request: NextRequest) {
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: 'array' });
 
-    // 성적분석 시트에서 전체 점수 데이터 가져오기
     const gradeData = parseGradeAnalysis(workbook);
-
     const students: StudentErrorData[] = [];
 
-    // 오답_ 으로 시작하는 시트만 처리
     for (const sheetName of workbook.SheetNames) {
       if (!sheetName.startsWith('오답_')) continue;
 
@@ -143,17 +182,13 @@ export async function POST(request: NextRequest) {
 
       if (jsonData.length < 12) continue;
 
-      // 상단 요약 점수 파싱
       const summary = parseStudentSummary(worksheet);
-
-      // 성적분석 시트에서 해당 학생 데이터
       const gradeInfo = gradeData.get(studentName);
 
-      // 오답 상세 목록 파싱 (번호, 유형, 시험명, 문제, 정답, 내 답안, 배점)
       const errors: ErrorItem[] = [];
       let headerRowIdx = -1;
+      let hasGrammarLecture = false;
 
-      // 헤더 행 찾기
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i];
         if (row && row[0] === '번호' && row[1] === '유형') {
@@ -164,7 +199,6 @@ export async function POST(request: NextRequest) {
 
       if (headerRowIdx < 0) continue;
 
-      // 데이터 행 파싱
       for (let i = headerRowIdx + 1; i < jsonData.length; i++) {
         const row = jsonData[i];
         if (!row || typeof row[0] !== 'number') continue;
@@ -174,9 +208,15 @@ export async function POST(request: NextRequest) {
         const question = String(row[3] || '');
         const correctAnswer = String(row[4] || '');
         const studentAnswer = String(row[5] || '');
+        const points = Number(row[6]) || 1;
 
-        // 타입 재분류
-        type = classifyType(question, correctAnswer, type);
+        // 문법특강 시험이 있는지 체크
+        if (examName.includes('문법특강')) {
+          hasGrammarLecture = true;
+        }
+
+        // 타입 재분류 (문법특강 Week 포함)
+        type = classifyType(question, correctAnswer, type, examName);
 
         // 유효한 타입인지 확인
         if (!ERROR_TYPES.includes(type as any)) {
@@ -191,24 +231,25 @@ export async function POST(request: NextRequest) {
           question: `[${examName}]\n${question}`,
           correctAnswer,
           studentAnswer,
-          type: type as ErrorItem['type']
+          type: type as ErrorItem['type'],
+          examName
         });
       }
 
       if (errors.length === 0) continue;
 
-      const errorsByType = {
-        '어휘': errors.filter(e => e.type === '어휘').length,
-        '어법(문법)': errors.filter(e => e.type === '어법(문법)').length,
-        '종합독해': errors.filter(e => e.type === '종합독해').length,
-        '배경지식(개념)': errors.filter(e => e.type === '배경지식(개념)').length
-      };
+      // 모든 타입에 대해 errorsByType 계산
+      const errorsByType: Record<string, number> = {};
+      ERROR_TYPES.forEach(t => {
+        const count = errors.filter(e => e.type === t).length;
+        if (count > 0) {
+          errorsByType[t] = count;
+        }
+      });
 
-      // 점수 계산 (성적분석 시트 우선, 없으면 개별 시트 요약 사용)
       const totalPossiblePoints = gradeInfo?.totalPossible || summary.overall.total || 0;
       const earnedPoints = gradeInfo?.earned || summary.overall.earned || 0;
-      const attemptedPoints = totalPossiblePoints; // 현재 응시한 점수 = 전체 점수
-      const unattemptedPoints = 0; // 미응시는 별도 데이터 필요
+      const attemptedPoints = totalPossiblePoints;
 
       students.push({
         id: `student-${students.length + 1}`,
@@ -221,11 +262,11 @@ export async function POST(request: NextRequest) {
         totalPossiblePoints,
         attemptedPoints,
         earnedPoints,
-        unattemptedPoints
+        hasGrammarLecture
       });
     }
 
-    // 점수순 정렬 (득점률 높은 순)
+    // 점수순 정렬
     students.sort((a, b) => {
       const rateA = a.attemptedPoints ? (a.earnedPoints || 0) / a.attemptedPoints : 0;
       const rateB = b.attemptedPoints ? (b.earnedPoints || 0) / b.attemptedPoints : 0;
