@@ -27,6 +27,21 @@ export default function InternalExamPage() {
     const [exporting, setExporting] = useState(false);
     const [showBatchExport, setShowBatchExport] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [hiddenExams, setHiddenExams] = useState<string[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('hiddenExams');
+            return saved ? JSON.parse(saved) : [];
+        }
+        return [];
+    });
+    const [availableExams, setAvailableExams] = useState<string[]>([]);
+
+    // hiddenExams 변경 시 localStorage에 저장
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('hiddenExams', JSON.stringify(hiddenExams));
+        }
+    }, [hiddenExams]);
 
     // 데이터 새로고침 함수
     const handleRefresh = async () => {
@@ -159,6 +174,24 @@ export default function InternalExamPage() {
                 }
                 const data = await res.json();
                 setReportData(data);
+
+                // 사용 가능한 시험 목록 추출
+                if (data) {
+                    const exams = new Set<string>();
+                    [...(data.commonExams || []), ...(data.schoolExams || [])].forEach((exam: any) => {
+                        const examName = exam.examName || '';
+                        let schoolName = '기타';
+                        if (examName.includes('충남')) schoolName = '충남고';
+                        else if (examName.includes('대성')) schoolName = '대성고';
+                        else if (examName.includes('도안')) schoolName = '도안고';
+                        else if (examName.includes('둔산')) schoolName = '둔산여고';
+                        else if (examName.includes('대신')) schoolName = '대신고';
+                        else if (examName.includes('모의고사')) schoolName = '모의고사';
+                        else schoolName = examName.split(' ')[0] || '기타';
+                        exams.add(schoolName);
+                    });
+                    setAvailableExams(Array.from(exams));
+                }
             } catch (err: any) {
                 setError(err.message);
                 setReportData(null);
@@ -351,6 +384,34 @@ export default function InternalExamPage() {
                                 </select>
                             </div>
 
+                            {/* 시험 표시 필터 */}
+                            {availableExams.length > 0 && (
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        표시할 시험 선택
+                                    </label>
+                                    <div className="space-y-2">
+                                        {availableExams.map((exam) => (
+                                            <label key={exam} className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={!hiddenExams.includes(exam)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setHiddenExams(hiddenExams.filter(h => h !== exam));
+                                                        } else {
+                                                            setHiddenExams([...hiddenExams, exam]);
+                                                        }
+                                                    }}
+                                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                                />
+                                                <span className="text-sm text-gray-700">{exam}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* 학생 목록 */}
                             <div className="border-t pt-4">
                                 <p className="text-sm text-gray-500 mb-2">
@@ -403,7 +464,7 @@ export default function InternalExamPage() {
                                 <p className="text-gray-500 text-sm">{error}</p>
                             </div>
                         ) : reportData ? (
-                            <InternalExamReportUI data={reportData} />
+                            <InternalExamReportUI data={reportData} hiddenExams={hiddenExams} />
                         ) : (
                             <div className="bg-white rounded-xl shadow-sm p-12 text-center">
                                 <div className="text-gray-400 mb-4">

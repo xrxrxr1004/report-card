@@ -12,6 +12,7 @@ interface InternalExamReportUIProps {
     data: InternalExamReportData;
     onExport?: () => void;
     hideExportButton?: boolean;
+    hiddenExams?: string[];
 }
 
 // 학교 시험 정보 (충남고, 대성고, 도안고 등)
@@ -25,7 +26,7 @@ interface SchoolExamInfo {
     scores: InternalExamScore[];
 }
 
-export default function InternalExamReportUI({ data, onExport, hideExportButton = false }: InternalExamReportUIProps) {
+export default function InternalExamReportUI({ data, onExport, hideExportButton = false, hiddenExams = [] }: InternalExamReportUIProps) {
     const reportRef = useRef<HTMLDivElement>(null);
 
     // 이미지 내보내기
@@ -64,9 +65,16 @@ export default function InternalExamReportUI({ data, onExport, hideExportButton 
             if (examName.includes('충남')) schoolName = '충남고';
             else if (examName.includes('대성')) schoolName = '대성고';
             else if (examName.includes('도안')) schoolName = '도안고';
+            else if (examName.includes('둔산')) schoolName = '둔산여고';
+            else if (examName.includes('대신')) schoolName = '대신고';
             else if (examName.includes('모의고사') || examName.includes('학력평가')) schoolName = '모의고사';
             else if (examName.includes('지필')) schoolName = data.school || '학교시험';
             else schoolName = examName.split(' ')[0] || '기타';
+
+            // 숨겨진 시험은 건너뛰기
+            if (hiddenExams.includes(schoolName)) {
+                return;
+            }
 
             if (!schoolGroups[schoolName]) {
                 schoolGroups[schoolName] = [];
@@ -105,6 +113,12 @@ export default function InternalExamReportUI({ data, onExport, hideExportButton 
                 borderColor: 'border-purple-400',
                 bgColor: 'bg-purple-50',
                 description: '전국 단위 학력평가 및 모의고사\n- 수능 유형에 맞춘 표준화된 시험입니다.'
+            },
+            '대신고': {
+                color: '#ec4899',
+                borderColor: 'border-pink-400',
+                bgColor: 'bg-pink-50',
+                description: '대신고 내신 대비 기출문제 테스트\n- 학교별 출제 경향에 맞춘 시험입니다.'
             }
         };
 
