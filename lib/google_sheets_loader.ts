@@ -739,7 +739,7 @@ export async function loadInternalExamScores(
                     mainIdea: parseScore(row['독해(대의)'] ?? row['대의파악']),
                     detail: parseScore(row['독해(세부)'] ?? row['세부내용']),
                     blank: parseScore(row['빈칸']),
-                    subjective: parseScore(row['서답형']),
+                    subjective: parseScore(row['서답형'] ?? row['서답, 서술형']),
                     totalScore: parseScore(row['총점']),
                     maxScore: parseFloat(row['만점']?.toString() || '100') || 100
                 };
