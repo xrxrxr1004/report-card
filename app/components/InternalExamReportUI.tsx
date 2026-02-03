@@ -167,6 +167,10 @@ export default function InternalExamReportUI({ data, onExport, hideExportButton 
             // 둔산여고 (5개 영역, 서답형 없음):
             // 어휘 9.9, 어법 15.9, 중심내용 40.6, 세부내용 13.6, 빈칸추론 20.0 = 총 100점
             return { vocabulary: 9.9, grammar: 15.9, mainIdea: 40.6, detail: 13.6, blank: 20.0, subjective: 0 };
+        } else if (schoolName === '대신고') {
+            // 대신고 (6개 영역):
+            // 어휘 7.6, 어법 8.6, 중심내용 19.1, 세부내용 20.2, 빈칸 24.5, 서술형 20.0 = 총 100점
+            return { vocabulary: 7.6, grammar: 8.6, mainIdea: 19.1, detail: 20.2, blank: 24.5, subjective: 20.0 };
         } else {
             // 기본값
             return { vocabulary: 20, grammar: 20, mainIdea: 30, detail: 30, blank: 0, subjective: 0 };
@@ -260,6 +264,21 @@ export default function InternalExamReportUI({ data, onExport, hideExportButton 
                 radarAreas: ['vocabulary', 'grammar', 'mainIdea', 'detail', 'blank'] as const,
                 radarNames: ['어휘', '어법', '중심내용', '세부내용', '빈칸']
             };
+        } else if (schoolName === '대신고') {
+            // 대신고: 6개 영역 (어휘, 어법, 중심내용, 세부내용, 빈칸, 서술형)
+            return {
+                areas: ['vocabulary', 'grammar', 'mainIdea', 'detail', 'blank', 'subjective'] as const,
+                names: {
+                    vocabulary: '어휘',
+                    grammar: '어법',
+                    mainIdea: '중심내용',
+                    detail: '세부내용',
+                    blank: '빈칸',
+                    subjective: '서술형'
+                },
+                radarAreas: ['vocabulary', 'grammar', 'mainIdea', 'detail', 'blank', 'subjective'] as const,
+                radarNames: ['어휘', '어법', '중심내용', '세부내용', '빈칸', '서술형']
+            };
         } else {
             // 기타 학교 - 4개 영역 (기본값)
             return {
@@ -329,6 +348,8 @@ export default function InternalExamReportUI({ data, onExport, hideExportButton 
             return `도안고 시험은 함정이 있는 문법 문제와 고난도 서술형이 특징입니다. ${strongName} 영역에서 안정적인 실력을 보여주고 있으며, ${weakName} 영역은 보완이 필요합니다. 어휘, 어법, 독해를 균형 있게 학습하고 특히 서술형 답안 작성 연습을 통해 문장 구성력을 키워주세요.`;
         } else if (schoolName === '둔산여고') {
             return `둔산여고 시험은 어려운 지문과 많은 문항 수가 특징이며, 단순 어휘 암기만으로는 해결되지 않습니다. ${strongName} 영역에서 강점을 보여주고 있으며, ${weakName} 영역은 집중 학습이 필요합니다. 글의 논리적 흐름을 파악하는 문해력을 기르고 빈칸 추론 문제에 대비해 문맥 파악 연습을 해주세요.`;
+        } else if (schoolName === '대신고') {
+            return `대신고 시험은 빈칸추론과 세부내용 파악의 비중이 높은 시험입니다. ${strongName} 영역에서 좋은 성취를 보여주고 있으며, ${weakName} 영역은 추가 학습이 필요합니다. 서술형 문항 대비를 위해 문장 구성력과 표현력을 기르는 연습을 해주세요.`;
         } else {
             return `${strongName} 영역에서 좋은 성취를 보여주고 있습니다. ${weakName} 영역은 추가 학습을 통해 보완하면 전체적인 성적 향상이 기대됩니다. 취약한 영역을 집중적으로 복습하고, 다양한 유형의 문제를 풀어보며 실력을 다져주세요.`;
         }
