@@ -33,10 +33,22 @@ export interface VocabData extends ScoreData {
     max4?: number;
     status4?: string;
     itemName4?: string;
-    score5?: number | null; // Week 3-1
+    score5?: number | null; // Week 3-2
     max5?: number;
     status5?: string;
     itemName5?: string;
+    score6?: number | null; // Week 4-1
+    max6?: number;
+    status6?: string;
+    itemName6?: string;
+    score7?: number | null; // Week 4-2
+    max7?: number;
+    status7?: string;
+    itemName7?: string;
+    score8?: number | null; // Week 5-1
+    max8?: number;
+    status8?: string;
+    itemName8?: string;
 }
 
 // 2.2 문법이론

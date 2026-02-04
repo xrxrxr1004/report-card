@@ -316,25 +316,35 @@ export async function loadWeekConfig(weekId: string): Promise<WeekConfig> {
 /**
  * 주차별 성적 데이터를 Excel에서 읽어옵니다.
  */
-export async function loadWeekScores(weekId: string): Promise<Map<string, {
-    name: string;
-    class: string;
-    school: string;
-    vocab1: number | null;
-    vocab2: number | null;
-    vocab3?: number | null;
-    vocab4?: number | null;
-    vocab5?: number | null;
-    grammarTheory: number | null;
-    grammarApp1?: number | null;
-    grammarApp2?: number | null;
-    grammarApp3?: number | null;
-    grammarApp4?: number | null;
-    mockExam: number | null;
-    internalExam?: number | null;
-    homework1?: number | null;
-    homework2?: number | null;
-}>> {
+// 주차별 성적 + 메타데이터 반환 타입
+export interface WeekScoresResult {
+    scores: Map<string, {
+        name: string;
+        class: string;
+        school: string;
+        vocab1: number | null;
+        vocab2: number | null;
+        vocab3?: number | null;
+        vocab4?: number | null;
+        vocab5?: number | null;
+        vocab6?: number | null;
+        vocab7?: number | null;
+        vocab8?: number | null;
+        grammarTheory: number | null;
+        grammarApp1?: number | null;
+        grammarApp2?: number | null;
+        grammarApp3?: number | null;
+        grammarApp4?: number | null;
+        mockExam: number | null;
+        internalExam?: number | null;
+        homework1?: number | null;
+        homework2?: number | null;
+    }>;
+    vocabWeeks: string[];  // 주차 이름 배열 (예: ["1주차", "2주차-1", ...])
+    grammarTopics: string[];  // 문법 토픽 이름 배열 (예: ["시제, 가정법", "부사절, 분사구문", ...])
+}
+
+export async function loadWeekScores(weekId: string): Promise<WeekScoresResult> {
     // 파일명에 공백이 있을 수 있으므로 먼저 정확한 파일명을 찾음
     const filePath = await findExcelFile(weekId);
 
@@ -354,7 +364,7 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
 
         if (rawData.length < 2) {
             console.warn('성적 데이터가 없습니다.');
-            return new Map();
+            return { scores: new Map(), vocabWeeks: [], grammarTopics: [] };
         }
 
         const headers = rawData[0] as string[];
@@ -369,6 +379,9 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
             vocab3?: number | null;
             vocab4?: number | null;
             vocab5?: number | null;
+            vocab6?: number | null;
+            vocab7?: number | null;
+            vocab8?: number | null;
             grammarTheory: number | null;
             grammarApp1?: number | null;
             grammarApp2?: number | null;
@@ -410,19 +423,20 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
             }
         });
 
-        // 문법 컬럼도 주차별로 그룹화
-        const grammarGroups: { week: string; indices: number[] }[] = [];
-        const grammarWeekPattern = /문법\s*-\s*[^(]+\((?:Basic|Advanced),?\s*(\d+주차)\)/;
+        // 문법 컬럼도 주차별로 그룹화 + 토픽 이름 추출
+        const grammarGroups: { week: string; topic: string; indices: number[] }[] = [];
+        const grammarWeekPattern = /문법\s*-\s*([^(]+)\s*\((?:Basic|Advanced|Advnaced),?\s*(\d+주차)\)/;
         grammarIndices.forEach(idx => {
             const header = headers[idx];
             const match = header.match(grammarWeekPattern);
             if (match) {
-                const week = match[1];
+                const topic = match[1].trim();
+                const week = match[2];
                 const existing = grammarGroups.find(g => g.week === week);
                 if (existing) {
                     existing.indices.push(idx);
                 } else {
-                    grammarGroups.push({ week, indices: [idx] });
+                    grammarGroups.push({ week, topic, indices: [idx] });
                 }
             }
         });
@@ -487,6 +501,9 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
                     vocab3: vocabScores[2] ?? null,
                     vocab4: vocabScores[3] ?? null,
                     vocab5: vocabScores[4] ?? null,
+                    vocab6: vocabScores[5] ?? null,
+                    vocab7: vocabScores[6] ?? null,
+                    vocab8: vocabScores[7] ?? null,
                     grammarTheory: null, // 문법이론은 별도 없음
                     grammarApp1: grammarScores[0] ?? null,
                     grammarApp2: grammarScores[1] ?? null,
@@ -500,8 +517,15 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
             }
         });
 
+        // 주차 이름과 문법 토픽 이름 배열
+        const vocabWeeks = vocabGroups.map(g => g.week);
+        const grammarTopics = grammarGroups.map(g => g.topic);
+
         console.log(`[Excel Loader] 총 ${scoresMap.size}명의 학생 데이터 로드 완료`);
-        return scoresMap;
+        console.log(`[Excel Loader] 단어 주차: ${vocabWeeks.join(', ')}`);
+        console.log(`[Excel Loader] 문법 토픽: ${grammarTopics.join(', ')}`);
+
+        return { scores: scoresMap, vocabWeeks, grammarTopics };
     } catch (error) {
         console.error(`주차별 성적 파일을 읽을 수 없습니다: ${filePath}`, error);
         throw error;
@@ -562,7 +586,7 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
     const weekConfig = await loadWeekConfig(weekId);
 
     // 2. 주차별 성적 로드 (성적 시트에 기본정보도 포함되어 있음)
-    const weekScores = await loadWeekScores(weekId);
+    const { scores: weekScores, vocabWeeks, grammarTopics } = await loadWeekScores(weekId);
 
     // 3. 학생 기본정보 로드 (있으면 사용, 없으면 성적 데이터의 정보 사용)
     const studentsInfo = await loadStudentDatabase();
@@ -599,6 +623,7 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
             class: studentClass,
             school: studentSchool,
             vocab1: null, vocab2: null, vocab3: null, vocab4: null, vocab5: null,
+            vocab6: null, vocab7: null, vocab8: null,
             grammarTheory: null,
             grammarApp1: null, grammarApp2: null, grammarApp3: null, grammarApp4: null,
             mockExam: null, internalExam: null, homework1: null, homework2: null
@@ -622,16 +647,28 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
                 grade: 0,
                 max1: weekConfig.maxScores.vocab1,
                 score1: currentScores.vocab1,
-                itemName1: weekConfig.vocabItemNames.item1,
+                itemName1: vocabWeeks[0] || weekConfig.vocabItemNames.item1,
                 score2: currentScores.vocab2,
                 max2: weekConfig.maxScores.vocab2,
-                itemName2: weekConfig.vocabItemNames.item2,
+                itemName2: vocabWeeks[1] || weekConfig.vocabItemNames.item2,
                 score3: currentScores.vocab3,
                 max3: weekConfig.vocabMaxScores?.vocab3 || 50,
-                itemName3: weekConfig.vocabItemNames.item3,
+                itemName3: vocabWeeks[2] || weekConfig.vocabItemNames.item3,
                 score4: currentScores.vocab4,
                 max4: weekConfig.vocabMaxScores?.vocab4 || 50,
-                itemName4: weekConfig.vocabItemNames.item4,
+                itemName4: vocabWeeks[3] || weekConfig.vocabItemNames.item4,
+                score5: currentScores.vocab5,
+                max5: weekConfig.vocabMaxScores?.vocab5 || 50,
+                itemName5: vocabWeeks[4] || weekConfig.vocabItemNames.item5,
+                score6: currentScores.vocab6,
+                max6: 50,
+                itemName6: vocabWeeks[5] || "독해단어 6",
+                score7: currentScores.vocab7,
+                max7: 50,
+                itemName7: vocabWeeks[6] || "독해단어 7",
+                score8: currentScores.vocab8,
+                max8: 50,
+                itemName8: vocabWeeks[7] || "독해단어 8",
                 tiedCount: 0,
                 title: "독해단어 (Vocabulary)",
                 weight: areaWeights.vocab
@@ -668,23 +705,23 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
                 ].filter(s => s !== null && s !== undefined).reduce((sum, s) => (sum || 0) + (s || 0), 0) || null,
                 score1: currentScores.grammarApp1 ?? null,
                 max1: weekConfig.grammarAppMaxScores?.item1 || 100,
-                itemName1: "문법 응용 1",
+                itemName1: grammarTopics[0] || "문법 응용 1",
                 score2: currentScores.grammarApp2 ?? null,
                 max2: weekConfig.grammarAppMaxScores?.item2 || 100,
-                itemName2: "문법 응용 2",
+                itemName2: grammarTopics[1] || "문법 응용 2",
                 score3: currentScores.grammarApp3 ?? null,
                 max3: weekConfig.grammarAppMaxScores?.item3 || 100,
-                itemName3: "문법 응용 3",
+                itemName3: grammarTopics[2] || "문법 응용 3",
                 score4: currentScores.grammarApp4 ?? null,
                 max4: weekConfig.grammarAppMaxScores?.item4 || 100,
-                itemName4: "문법 응용 4",
+                itemName4: grammarTopics[3] || "문법 응용 4",
 
                 rank: 0,
                 grade: 0,
                 maxScore: weekConfig.maxScores.grammarApp,
                 wrongAnswers: [],
                 tiedCount: 0,
-                title: "문법 응용 (Grammar Application)",
+                title: "문법 확인학습 (Grammar Check)",
                 subtitle: weekConfig.grammarAppSubtitle || "문법 기본기 확인 학습 평가입니다.",
                 weight: areaWeights.grammarApp
             },
@@ -730,13 +767,16 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
             comment: ''
         };
 
-        // 독해단어 합계 계산
+        // 독해단어 합계 계산 (8개 주차 모두 포함)
         const vocabScoresList = [
             currentScores.vocab1,
             currentScores.vocab2,
             currentScores.vocab3,
             currentScores.vocab4,
-            currentScores.vocab5
+            currentScores.vocab5,
+            currentScores.vocab6,
+            currentScores.vocab7,
+            currentScores.vocab8
         ].filter(score => score !== null && score !== undefined);
 
         if (vocabScoresList.length > 0) {
@@ -758,13 +798,16 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
         let totalWeightedScore = 0;
         const weights = weekConfig.areaWeights || DEFAULT_WEEK_CONFIG.areaWeights!;
 
-        // 1. Vocab
+        // 1. Vocab (8개 주차 모두 포함)
         const vocabMax = (
             (currentScores.vocab1 !== null ? (weekConfig.maxScores.vocab1 || 50) : 0) +
             (currentScores.vocab2 !== null ? (weekConfig.maxScores.vocab2 || 50) : 0) +
             (currentScores.vocab3 !== null ? (weekConfig.vocabMaxScores?.vocab3 || 50) : 0) +
             (currentScores.vocab4 !== null ? (weekConfig.vocabMaxScores?.vocab4 || 50) : 0) +
-            (currentScores.vocab5 !== null ? (weekConfig.vocabMaxScores?.vocab5 || 50) : 0)
+            (currentScores.vocab5 !== null ? (weekConfig.vocabMaxScores?.vocab5 || 50) : 0) +
+            (currentScores.vocab6 !== null ? 50 : 0) +
+            (currentScores.vocab7 !== null ? 50 : 0) +
+            (currentScores.vocab8 !== null ? 50 : 0)
         );
         if (history.vocab.score !== null && vocabMax > 0) {
             totalWeightedScore += (history.vocab.score / vocabMax) * (weights.vocab * 100);
@@ -808,21 +851,6 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
         }
 
         history.totalScore = parseFloat(totalWeightedScore.toFixed(1)); // Round to 1 decimal place
-        if (currentScores.vocab3 !== null && currentScores.vocab3 !== undefined) {
-            history.vocab.score3 = currentScores.vocab3;
-            history.vocab.max3 = weekConfig.vocabMaxScores?.vocab3 || 50;
-            history.vocab.itemName3 = weekConfig.vocabItemNames.item3 || "독해단어 3";
-        }
-        if (currentScores.vocab4 !== null && currentScores.vocab4 !== undefined) {
-            history.vocab.score4 = currentScores.vocab4;
-            history.vocab.max4 = weekConfig.vocabMaxScores?.vocab4 || 50;
-            history.vocab.itemName4 = weekConfig.vocabItemNames.item4 || "독해단어 4";
-        }
-        if (currentScores.vocab5 !== null && currentScores.vocab5 !== undefined) {
-            history.vocab.score5 = currentScores.vocab5;
-            history.vocab.max5 = weekConfig.vocabMaxScores?.vocab5 || 50;
-            history.vocab.itemName5 = weekConfig.vocabItemNames.item5 || "독해단어 5";
-        }
 
         students.push({
             id: studentId,

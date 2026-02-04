@@ -97,25 +97,40 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
 
 
   // Radar Data Preparation
-  // 독해단어 점수: score가 null이어도 score1 또는 score2가 있으면 합계 사용
+  // 독해단어 점수: score가 null이어도 score1~8이 있으면 합계 사용
   const vocabScoreForChart = currentWeekData.vocab.score !== null
     ? currentWeekData.vocab.score
-    : ((currentWeekData.vocab.score1 ?? 0) + (currentWeekData.vocab.score2 ?? 0)) || 0;
+    : ((currentWeekData.vocab.score1 ?? 0) +
+       (currentWeekData.vocab.score2 ?? 0) +
+       (currentWeekData.vocab.score3 ?? 0) +
+       (currentWeekData.vocab.score4 ?? 0) +
+       (currentWeekData.vocab.score5 ?? 0) +
+       (currentWeekData.vocab.score6 ?? 0) +
+       (currentWeekData.vocab.score7 ?? 0) +
+       (currentWeekData.vocab.score8 ?? 0)) || 0;
 
   const radarData = [
-    // 독해단어: score1, score2, score3 중 하나라도 있으면 포함
+    // 독해단어: score1~8 중 하나라도 있으면 포함
     ...(((currentWeekData.vocab.score1 !== null && currentWeekData.vocab.score1 !== undefined) ||
       (currentWeekData.vocab.score2 !== null && currentWeekData.vocab.score2 !== undefined) ||
       (currentWeekData.vocab.score3 !== null && currentWeekData.vocab.score3 !== undefined) ||
+      (currentWeekData.vocab.score4 !== null && currentWeekData.vocab.score4 !== undefined) ||
+      (currentWeekData.vocab.score5 !== null && currentWeekData.vocab.score5 !== undefined) ||
+      (currentWeekData.vocab.score6 !== null && currentWeekData.vocab.score6 !== undefined) ||
+      (currentWeekData.vocab.score7 !== null && currentWeekData.vocab.score7 !== undefined) ||
+      (currentWeekData.vocab.score8 !== null && currentWeekData.vocab.score8 !== undefined) ||
       currentWeekData.vocab.status1 || currentWeekData.vocab.status2 || currentWeekData.vocab.status3)
       ? [{
         subject: "독해단어",
         A: vocabScoreForChart / (
-          (currentWeekData.vocab.max1 || 50) +
-          (currentWeekData.vocab.max2 || 50) +
-          (currentWeekData.vocab.max3 || 50) +
-          (currentWeekData.vocab.max4 || 50) +
-          (currentWeekData.vocab.max5 || 0) || 1
+          (currentWeekData.vocab.score1 !== null && currentWeekData.vocab.score1 !== undefined ? (currentWeekData.vocab.max1 || 50) : 0) +
+          (currentWeekData.vocab.score2 !== null && currentWeekData.vocab.score2 !== undefined ? (currentWeekData.vocab.max2 || 50) : 0) +
+          (currentWeekData.vocab.score3 !== null && currentWeekData.vocab.score3 !== undefined ? (currentWeekData.vocab.max3 || 50) : 0) +
+          (currentWeekData.vocab.score4 !== null && currentWeekData.vocab.score4 !== undefined ? (currentWeekData.vocab.max4 || 50) : 0) +
+          (currentWeekData.vocab.score5 !== null && currentWeekData.vocab.score5 !== undefined ? (currentWeekData.vocab.max5 || 50) : 0) +
+          (currentWeekData.vocab.score6 !== null && currentWeekData.vocab.score6 !== undefined ? (currentWeekData.vocab.max6 || 50) : 0) +
+          (currentWeekData.vocab.score7 !== null && currentWeekData.vocab.score7 !== undefined ? (currentWeekData.vocab.max7 || 50) : 0) +
+          (currentWeekData.vocab.score8 !== null && currentWeekData.vocab.score8 !== undefined ? (currentWeekData.vocab.max8 || 50) : 0) || 1
         ) * 100,
         fullMark: 100,
         id: "vocab"
@@ -480,12 +495,15 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
                 : ((currentWeekData.vocab.score1 ?? 0) + (currentWeekData.vocab.score2 ?? 0)) || null
             }
             maxScore={
-              // 실제 응시한 시험의 최대 점수 합계
+              // 실제 응시한 시험의 최대 점수 합계 (8개 주차 모두)
               (currentWeekData.vocab.score1 !== null && currentWeekData.vocab.score1 !== undefined ? (currentWeekData.vocab.max1 || 50) : 0) +
               (currentWeekData.vocab.score2 !== null && currentWeekData.vocab.score2 !== undefined ? (currentWeekData.vocab.max2 || 50) : 0) +
               (currentWeekData.vocab.score3 !== null && currentWeekData.vocab.score3 !== undefined ? (currentWeekData.vocab.max3 || 50) : 0) +
               (currentWeekData.vocab.score4 !== null && currentWeekData.vocab.score4 !== undefined ? (currentWeekData.vocab.max4 || 50) : 0) +
-              (currentWeekData.vocab.score5 !== null && currentWeekData.vocab.score5 !== undefined ? (currentWeekData.vocab.max5 || 50) : 0) || 90
+              (currentWeekData.vocab.score5 !== null && currentWeekData.vocab.score5 !== undefined ? (currentWeekData.vocab.max5 || 50) : 0) +
+              (currentWeekData.vocab.score6 !== null && currentWeekData.vocab.score6 !== undefined ? (currentWeekData.vocab.max6 || 50) : 0) +
+              (currentWeekData.vocab.score7 !== null && currentWeekData.vocab.score7 !== undefined ? (currentWeekData.vocab.max7 || 50) : 0) +
+              (currentWeekData.vocab.score8 !== null && currentWeekData.vocab.score8 !== undefined ? (currentWeekData.vocab.max8 || 50) : 0) || 90
             }
             grade={currentWeekData.vocab.grade}
             rank={currentWeekData.vocab.rank}
@@ -569,6 +587,48 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
                     {currentWeekData.vocab.score5 !== null && currentWeekData.vocab.score5 !== undefined
                       ? `${currentWeekData.vocab.score5} / ${currentWeekData.vocab.max5 || 50}`
                       : (currentWeekData.vocab.status5 || '미응시')}
+                  </div>
+                </div>
+              )}
+
+              {/* 독해단어 6 */}
+              {(currentWeekData.vocab.max6 || 0) > 0 && (
+                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
+                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
+                    {currentWeekData.vocab.itemName6 || "독해단어 6"}
+                  </div>
+                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
+                    {currentWeekData.vocab.score6 !== null && currentWeekData.vocab.score6 !== undefined
+                      ? `${currentWeekData.vocab.score6} / ${currentWeekData.vocab.max6 || 50}`
+                      : (currentWeekData.vocab.status6 || '미응시')}
+                  </div>
+                </div>
+              )}
+
+              {/* 독해단어 7 */}
+              {(currentWeekData.vocab.max7 || 0) > 0 && (
+                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
+                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
+                    {currentWeekData.vocab.itemName7 || "독해단어 7"}
+                  </div>
+                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
+                    {currentWeekData.vocab.score7 !== null && currentWeekData.vocab.score7 !== undefined
+                      ? `${currentWeekData.vocab.score7} / ${currentWeekData.vocab.max7 || 50}`
+                      : (currentWeekData.vocab.status7 || '미응시')}
+                  </div>
+                </div>
+              )}
+
+              {/* 독해단어 8 */}
+              {(currentWeekData.vocab.max8 || 0) > 0 && (
+                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
+                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
+                    {currentWeekData.vocab.itemName8 || "독해단어 8"}
+                  </div>
+                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
+                    {currentWeekData.vocab.score8 !== null && currentWeekData.vocab.score8 !== undefined
+                      ? `${currentWeekData.vocab.score8} / ${currentWeekData.vocab.max8 || 50}`
+                      : (currentWeekData.vocab.status8 || '미응시')}
                   </div>
                 </div>
               )}
