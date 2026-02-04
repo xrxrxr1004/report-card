@@ -336,12 +336,18 @@ export interface WeekScoresResult {
         grammarApp3?: number | null;
         grammarApp4?: number | null;
         mockExam: number | null;
+        mockExam1?: number | null;
+        mockExam2?: number | null;
         internalExam?: number | null;
         homework1?: number | null;
         homework2?: number | null;
+        homework3?: number | null;
+        homework4?: number | null;
     }>;
     vocabWeeks: string[];  // 주차 이름 배열 (예: ["1주차", "2주차-1", ...])
     grammarTopics: string[];  // 문법 토픽 이름 배열 (예: ["시제, 가정법", "부사절, 분사구문", ...])
+    mockExamNames: string[];  // 모의고사 이름 배열 (예: ["3차", "4차"])
+    homeworkNames: string[];  // 숙제 이름 배열
 }
 
 export async function loadWeekScores(weekId: string): Promise<WeekScoresResult> {
@@ -441,11 +447,25 @@ export async function loadWeekScores(weekId: string): Promise<WeekScoresResult> 
             }
         });
 
+        // 모의고사 이름 추출 (예: "모의고사 3차", "모의고사 4차" → ["3차", "4차"])
+        const mockExamNames: string[] = mockExamIndices.map(idx => {
+            const header = headers[idx];
+            const match = header.match(/모의고사\s*[-_]?\s*(\d+차)/);
+            return match ? match[1] : header.replace('모의고사', '').trim() || `모의고사 ${mockExamIndices.indexOf(idx) + 1}`;
+        });
+
+        // 숙제 이름 추출 (예: "숙제 2주차", "숙제 3주차" → ["2주차", "3주차"])
+        const homeworkNames: string[] = homeworkIndices.map(idx => {
+            const header = headers[idx];
+            const match = header.match(/숙제\s*[-_]?\s*(\d+주차)/);
+            return match ? match[1] : header.replace('숙제', '').trim() || `숙제 ${homeworkIndices.indexOf(idx) + 1}`;
+        });
+
         console.log(`[Excel Loader] 컬럼 매핑 - 이름:${nameIdx}, 학교:${schoolIdx}, 반:${classIdx}`);
         console.log(`[Excel Loader] 단어 주차 그룹(${vocabGroups.length}개):`, vocabGroups.map(g => g.week));
         console.log(`[Excel Loader] 문법 주차 그룹(${grammarGroups.length}개):`, grammarGroups.map(g => g.week));
-        console.log(`[Excel Loader] 숙제 컬럼(${homeworkIndices.length}개):`, homeworkIndices.map(i => headers[i]));
-        console.log(`[Excel Loader] 모의고사 컬럼(${mockExamIndices.length}개):`, mockExamIndices.map(i => headers[i]));
+        console.log(`[Excel Loader] 숙제 컬럼(${homeworkIndices.length}개):`, homeworkNames);
+        console.log(`[Excel Loader] 모의고사 컬럼(${mockExamIndices.length}개):`, mockExamNames);
 
         dataRows.forEach((row, rowIdx) => {
             const name = row[nameIdx]?.toString().trim();
@@ -510,9 +530,13 @@ export async function loadWeekScores(weekId: string): Promise<WeekScoresResult> 
                     grammarApp3: grammarScores[2] ?? null,
                     grammarApp4: grammarScores[3] ?? null,
                     mockExam: mockExamScore !== null ? Math.round(mockExamScore) : null,
+                    mockExam1: mockScores[0] !== null ? Math.round(mockScores[0]) : null,
+                    mockExam2: mockScores[1] !== null ? Math.round(mockScores[1]) : null,
                     internalExam: null, // 내신기출은 별도 시트
                     homework1: homeworkScores[0] ?? null,
-                    homework2: homeworkScores[1] ?? null
+                    homework2: homeworkScores[1] ?? null,
+                    homework3: homeworkScores[2] ?? null,
+                    homework4: homeworkScores[3] ?? null
                 });
             }
         });
@@ -525,7 +549,7 @@ export async function loadWeekScores(weekId: string): Promise<WeekScoresResult> 
         console.log(`[Excel Loader] 단어 주차: ${vocabWeeks.join(', ')}`);
         console.log(`[Excel Loader] 문법 토픽: ${grammarTopics.join(', ')}`);
 
-        return { scores: scoresMap, vocabWeeks, grammarTopics };
+        return { scores: scoresMap, vocabWeeks, grammarTopics, mockExamNames, homeworkNames };
     } catch (error) {
         console.error(`주차별 성적 파일을 읽을 수 없습니다: ${filePath}`, error);
         throw error;
@@ -586,7 +610,7 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
     const weekConfig = await loadWeekConfig(weekId);
 
     // 2. 주차별 성적 로드 (성적 시트에 기본정보도 포함되어 있음)
-    const { scores: weekScores, vocabWeeks, grammarTopics } = await loadWeekScores(weekId);
+    const { scores: weekScores, vocabWeeks, grammarTopics, mockExamNames, homeworkNames } = await loadWeekScores(weekId);
 
     // 3. 학생 기본정보 로드 (있으면 사용, 없으면 성적 데이터의 정보 사용)
     const studentsInfo = await loadStudentDatabase();
@@ -626,7 +650,9 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
             vocab6: null, vocab7: null, vocab8: null,
             grammarTheory: null,
             grammarApp1: null, grammarApp2: null, grammarApp3: null, grammarApp4: null,
-            mockExam: null, internalExam: null, homework1: null, homework2: null
+            mockExam: null, mockExam1: null, mockExam2: null,
+            internalExam: null,
+            homework1: null, homework2: null, homework3: null, homework4: null
         };
 
         // Weights for visibility check
@@ -735,6 +761,12 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
             },
             mockExam: {
                 score: currentScores.mockExam ?? null,
+                score1: currentScores.mockExam1 ?? null,
+                max1: 100,
+                itemName1: mockExamNames[0] || "모의고사 1",
+                score2: currentScores.mockExam2 ?? null,
+                max2: 100,
+                itemName2: mockExamNames[1] || "모의고사 2",
                 rank: 0,
                 grade: 0,
                 mainIdeaScore: 0,
@@ -755,10 +787,16 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
                 score: null, // Legacy check
                 score1: currentScores.homework1 ?? null,
                 max1: weekConfig.homeworkMaxScores?.item1 || 100,
-                itemName1: weekConfig.homeworkItemNames?.item1 || "숙제 1",
+                itemName1: homeworkNames[0] || weekConfig.homeworkItemNames?.item1 || "숙제 1",
                 score2: currentScores.homework2 ?? null,
                 max2: weekConfig.homeworkMaxScores?.item2 || 100,
-                itemName2: weekConfig.homeworkItemNames?.item2 || "숙제 2",
+                itemName2: homeworkNames[1] || weekConfig.homeworkItemNames?.item2 || "숙제 2",
+                score3: currentScores.homework3 ?? null,
+                max3: weekConfig.homeworkMaxScores?.item3 || 100,
+                itemName3: homeworkNames[2] || "숙제 3",
+                score4: currentScores.homework4 ?? null,
+                max4: weekConfig.homeworkMaxScores?.item4 || 100,
+                itemName4: homeworkNames[3] || "숙제 4",
                 maxScore: weekConfig.maxScores.homework,
                 title: "숙제 (Homework)",
                 weight: areaWeights.homework
@@ -785,7 +823,9 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
 
         const homeworkScoresList = [
             currentScores.homework1,
-            currentScores.homework2
+            currentScores.homework2,
+            currentScores.homework3,
+            currentScores.homework4
         ].filter(score => score !== null && score !== undefined);
 
         if (homeworkScoresList.length > 0 && history.homework) {
@@ -841,10 +881,12 @@ export async function loadStudentsFromExcel(weekId: string = '2025-12-W1'): Prom
             totalWeightedScore += (history.internalExam.score / (weekConfig.maxScores.internalExam || 100)) * (weights.internalExam * 100);
         }
 
-        // 6. Homework
+        // 6. Homework (4개 숙제 지원)
         const homeworkMax = (
             (currentScores.homework1 !== null ? (weekConfig.homeworkMaxScores?.item1 || 100) : 0) +
-            (currentScores.homework2 !== null ? (weekConfig.homeworkMaxScores?.item2 || 100) : 0)
+            (currentScores.homework2 !== null ? (weekConfig.homeworkMaxScores?.item2 || 100) : 0) +
+            (currentScores.homework3 !== null ? (weekConfig.homeworkMaxScores?.item3 || 100) : 0) +
+            (currentScores.homework4 !== null ? (weekConfig.homeworkMaxScores?.item4 || 100) : 0)
         );
         if (history.homework?.score !== null && history.homework?.score !== undefined && homeworkMax > 0 && weights.homework) {
             totalWeightedScore += (history.homework.score / homeworkMax) * (weights.homework * 100);

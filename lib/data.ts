@@ -98,6 +98,13 @@ export interface MockExamData extends ScoreData {
         number: number;
         type: string;
     }[];
+    // 모의고사 개별 점수 (예: 3차, 4차)
+    score1?: number | null;
+    max1?: number;
+    itemName1?: string;
+    score2?: number | null;
+    max2?: number;
+    itemName2?: string;
 }
 
 // 2.6 내신기출 (New)
@@ -179,7 +186,7 @@ export const MANAGED_SCHOOLS = [
 ] as const;
 
 // 2.7 숙제 (New)
-// 2.7 숙제 (New) - refactored for Week 2, Week 3
+// 2.7 숙제 (New) - refactored for Week 2, Week 3, Week 4, Week 5
 export interface HomeworkData extends ScoreData {
     maxScore?: number; // Legacy or total max
     score1?: number | null; // Week 2
@@ -188,6 +195,12 @@ export interface HomeworkData extends ScoreData {
     score2?: number | null; // Week 3
     max2?: number;
     itemName2?: string;
+    score3?: number | null; // Week 4
+    max3?: number;
+    itemName3?: string;
+    score4?: number | null; // Week 5
+    max4?: number;
+    itemName4?: string;
 }
 
 export interface WeeklyReportData {
