@@ -807,22 +807,13 @@ export async function loadInternalExamScores(
 
             // 총평 추출 (모든 시험 행에서 총평을 찾아서 합침)
             const comments: string[] = [];
-            scores.forEach((row, idx) => {
+            scores.forEach(row => {
                 const rowComment = row['총평']?.toString().trim();
-                // 디버깅: 첫 번째 학생의 총평 데이터 확인
-                if (name === '박채원' || name === '길영찬') {
-                    console.log(`[DEBUG] ${name} - 행 ${idx}: 총평 값 = "${rowComment ? rowComment.substring(0, 30) + '...' : '(없음)'}"`);
-                }
                 if (rowComment && !comments.includes(rowComment)) {
                     comments.push(rowComment);
                 }
             });
             const comment = comments.join('\n\n');
-
-            // 디버깅: 최종 comment 확인
-            if (name === '박채원' || name === '길영찬') {
-                console.log(`[DEBUG] ${name} - 최종 comment: "${comment ? comment.substring(0, 50) + '...' : '(없음)'}"`);
-            }
 
             results.push({
                 studentId: `student-${name}`,
