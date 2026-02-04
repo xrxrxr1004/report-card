@@ -392,9 +392,44 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
         const homeworkIndices = headers.map((h, i) => h && h.includes('숙제') ? i : -1).filter(i => i !== -1);
         const mockExamIndices = headers.map((h, i) => h && h.includes('모의고사') ? i : -1).filter(i => i !== -1);
 
+        // 단어 컬럼을 주차별로 그룹화 (Advanced/Basic 쌍)
+        // 예: '단어 - 1주차 (Advanced)', '단어 - 1주차 (Basic)' → 1주차 그룹
+        const vocabGroups: { week: string; indices: number[] }[] = [];
+        const weekPattern = /단어\s*-\s*(\d+주차(?:-\d+)?)/;
+        vocabIndices.forEach(idx => {
+            const header = headers[idx];
+            const match = header.match(weekPattern);
+            if (match) {
+                const week = match[1];
+                const existing = vocabGroups.find(g => g.week === week);
+                if (existing) {
+                    existing.indices.push(idx);
+                } else {
+                    vocabGroups.push({ week, indices: [idx] });
+                }
+            }
+        });
+
+        // 문법 컬럼도 주차별로 그룹화
+        const grammarGroups: { week: string; indices: number[] }[] = [];
+        const grammarWeekPattern = /문법\s*-\s*[^(]+\((?:Basic|Advanced),?\s*(\d+주차)\)/;
+        grammarIndices.forEach(idx => {
+            const header = headers[idx];
+            const match = header.match(grammarWeekPattern);
+            if (match) {
+                const week = match[1];
+                const existing = grammarGroups.find(g => g.week === week);
+                if (existing) {
+                    existing.indices.push(idx);
+                } else {
+                    grammarGroups.push({ week, indices: [idx] });
+                }
+            }
+        });
+
         console.log(`[Excel Loader] 컬럼 매핑 - 이름:${nameIdx}, 학교:${schoolIdx}, 반:${classIdx}`);
-        console.log(`[Excel Loader] 단어 컬럼(${vocabIndices.length}개):`, vocabIndices.map(i => headers[i]));
-        console.log(`[Excel Loader] 문법 컬럼(${grammarIndices.length}개):`, grammarIndices.map(i => headers[i]));
+        console.log(`[Excel Loader] 단어 주차 그룹(${vocabGroups.length}개):`, vocabGroups.map(g => g.week));
+        console.log(`[Excel Loader] 문법 주차 그룹(${grammarGroups.length}개):`, grammarGroups.map(g => g.week));
         console.log(`[Excel Loader] 숙제 컬럼(${homeworkIndices.length}개):`, homeworkIndices.map(i => headers[i]));
         console.log(`[Excel Loader] 모의고사 컬럼(${mockExamIndices.length}개):`, mockExamIndices.map(i => headers[i]));
 
@@ -405,11 +440,23 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
                 const school = schoolIdx !== -1 ? (row[schoolIdx]?.toString().trim() || '') : '';
                 const studentClass = classIdx !== -1 ? (row[classIdx]?.toString().trim() || '') : '';
 
-                // 단어 점수 추출 (퍼센트 → 100점 만점 변환)
-                const vocabScores: (number | null)[] = vocabIndices.map(i => parsePercentScore(row[i]));
+                // 단어 점수: 각 주차 그룹에서 유효한 값(null이 아닌 값) 선택
+                const vocabScores: (number | null)[] = vocabGroups.map(group => {
+                    for (const idx of group.indices) {
+                        const score = parsePercentScore(row[idx]);
+                        if (score !== null) return score;
+                    }
+                    return null;
+                });
 
-                // 문법 점수 추출 (퍼센트 → 100점 만점 변환)
-                const grammarScores: (number | null)[] = grammarIndices.map(i => parsePercentScore(row[i]));
+                // 문법 점수: 각 주차 그룹에서 유효한 값 선택
+                const grammarScores: (number | null)[] = grammarGroups.map(group => {
+                    for (const idx of group.indices) {
+                        const score = parsePercentScore(row[idx]);
+                        if (score !== null) return score;
+                    }
+                    return null;
+                });
 
                 // 숙제 점수 추출 (퍼센트 → 100점 만점 변환)
                 const homeworkScores: (number | null)[] = homeworkIndices.map(i => parsePercentScore(row[i]));
@@ -425,8 +472,8 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
                 // 첫 번째 학생 데이터 로그
                 if (rowIdx === 0) {
                     console.log(`[Excel Loader] 첫 번째 학생: ${name}, 학교: ${school}, 반: ${studentClass}`);
-                    console.log(`[Excel Loader] 단어점수:`, vocabScores);
-                    console.log(`[Excel Loader] 문법점수:`, grammarScores);
+                    console.log(`[Excel Loader] 단어점수(주차별):`, vocabScores);
+                    console.log(`[Excel Loader] 문법점수(주차별):`, grammarScores);
                     console.log(`[Excel Loader] 숙제점수:`, homeworkScores);
                     console.log(`[Excel Loader] 모의고사:`, mockScores, '→', mockExamScore);
                 }
