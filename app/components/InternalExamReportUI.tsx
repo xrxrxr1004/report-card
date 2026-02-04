@@ -540,21 +540,6 @@ export default function InternalExamReportUI({ data, onExport, hideExportButton 
                     </div>
                 </div>
 
-                {/* 개인별 총평 섹션 */}
-                {data.comment && (
-                    <div className="mb-6">
-                        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                            <span className="w-1 h-6 bg-pink-500 mr-3"></span>
-                            개인별 총평
-                        </h2>
-                        <div className="bg-pink-50 border border-pink-200 rounded-lg p-5">
-                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                                {data.comment}
-                            </p>
-                        </div>
-                    </div>
-                )}
-
                 <hr className="border-gray-200 my-6" />
 
                 {/* 푸터 */}
