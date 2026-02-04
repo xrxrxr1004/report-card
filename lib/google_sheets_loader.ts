@@ -805,8 +805,15 @@ export async function loadInternalExamScores(
                 .filter((s): s is number => s !== null && s !== undefined)
                 .reduce((a, b) => a + b, 0);
 
-            // 총평 추출 (첫 번째 점수 행에서)
-            const comment = scores[0]?.['총평']?.toString().trim() || '';
+            // 총평 추출 (모든 시험 행에서 총평을 찾아서 합침)
+            const comments: string[] = [];
+            scores.forEach(row => {
+                const rowComment = row['총평']?.toString().trim();
+                if (rowComment && !comments.includes(rowComment)) {
+                    comments.push(rowComment);
+                }
+            });
+            const comment = comments.join('\n\n');
 
             results.push({
                 studentId: `student-${name}`,
