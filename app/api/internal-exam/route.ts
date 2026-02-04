@@ -55,6 +55,8 @@ export async function GET(request: Request) {
                         { status: 404 }
                     );
                 }
+                // 디버깅: comment 필드 확인
+                console.log(`[DEBUG] Student: ${report.studentName}, Comment: ${report.comment ? report.comment.substring(0, 50) + '...' : '(없음)'}`);
                 return NextResponse.json(report);
             }
 
