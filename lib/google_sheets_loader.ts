@@ -245,19 +245,6 @@ export async function loadWeekConfig(weekId: string): Promise<WeekConfig> {
 }
 
 /**
- * 반별로 Advanced/Basic 컬럼 선택
- * W, T 반 → Advanced
- * I, N 반 → Basic
- */
-function getClassLevel(className: string): 'Advanced' | 'Basic' {
-    const upperClass = className?.toUpperCase().trim() || '';
-    if (upperClass === 'W' || upperClass === 'T') {
-        return 'Advanced';
-    }
-    return 'Basic';
-}
-
-/**
  * 주간 성적 데이터를 Google Sheets에서 읽어옵니다.
  */
 export async function loadWeekScores(weekId: string): Promise<Map<string, {
@@ -269,24 +256,19 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
     vocab3?: number | null;
     vocab4?: number | null;
     vocab5?: number | null;
-    vocab6?: number | null;
-    vocab7?: number | null;
-    vocab8?: number | null;
     grammarTheory: number | null;
     grammarApp1?: number | null;
     grammarApp2?: number | null;
     grammarApp3?: number | null;
     grammarApp4?: number | null;
     mockExam: number | null;
-    mockExam2?: number | null;
     internalExam?: number | null;
     homework1?: number | null;
     homework2?: number | null;
-    homework3?: number | null;
-    homework4?: number | null;
 }>> {
     try {
         // 주간성적 시트에서 해당 주차 데이터 읽기
+        // 시트 형식: 이름, 반, 학교, 주차, 독해단어1, 독해단어2, ... , 모의고사, 내신기출, 숙제
         const data = await readSheetData(SHEETS.WEEKLY_SCORES);
         const rows = sheetDataToObjects(data);
 
@@ -299,21 +281,15 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
             vocab3?: number | null;
             vocab4?: number | null;
             vocab5?: number | null;
-            vocab6?: number | null;
-            vocab7?: number | null;
-            vocab8?: number | null;
             grammarTheory: number | null;
             grammarApp1?: number | null;
             grammarApp2?: number | null;
             grammarApp3?: number | null;
             grammarApp4?: number | null;
             mockExam: number | null;
-            mockExam2?: number | null;
             internalExam?: number | null;
             homework1?: number | null;
             homework2?: number | null;
-            homework3?: number | null;
-            homework4?: number | null;
         }>();
 
         // 해당 주차 데이터만 필터링
@@ -321,39 +297,25 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
 
         weekRows.forEach(row => {
             const name = row['이름']?.toString().trim();
-            const studentClass = row['반']?.toString().trim() || '';
-            const level = getClassLevel(studentClass);
-
             if (name) {
                 scoresMap.set(name, {
                     name: name,
-                    class: studentClass,
+                    class: row['반']?.toString().trim() || '',
                     school: row['학교']?.toString().trim() || '',
-                    // 단어 점수 - 반별 Advanced/Basic 선택
-                    vocab1: parseScore(row[`단어 - 1주차 (${level})`] ?? row['독해단어1'] ?? row['단어시험week1']),
-                    vocab2: parseScore(row[`단어 - 2주차-1 (${level})`] ?? row['독해단어2'] ?? row['단어시험week2-1']),
-                    vocab3: parseScore(row[`단어 - 2주차-2 (${level})`] ?? row['독해단어3'] ?? row['단어시험week2-2']),
-                    vocab4: parseScore(row[`단어 - 3주차-1 (${level})`] ?? row['독해단어4'] ?? row['단어시험week3-1']),
-                    vocab5: parseScore(row[`단어 - 3주차-2 (${level})`] ?? row['독해단어5']),
-                    vocab6: parseScore(row[`단어 - 4주차-1 (${level})`]),
-                    vocab7: parseScore(row[`단어 - 4주차-2 (${level})`]),
-                    vocab8: parseScore(row[`단어 - 5주차-1 (${level})`]),
-                    // 문법 점수 - 반별 Advanced/Basic 선택
+                    vocab1: parseScore(row['독해단어1'] ?? row['단어시험week1'] ?? row['Week1']),
+                    vocab2: parseScore(row['독해단어2'] ?? row['단어시험week2-1'] ?? row['Week2-1']),
+                    vocab3: parseScore(row['독해단어3'] ?? row['단어시험week2-2'] ?? row['Week2-2']),
+                    vocab4: parseScore(row['독해단어4'] ?? row['단어시험week3-1'] ?? row['Week3-1']),
+                    vocab5: parseScore(row['독해단어5']),
                     grammarTheory: parseScore(row['문법이론']),
-                    grammarApp1: parseScore(row[`문법 - 시제, 가정법 (${level}, 2주차)`] ?? row['문법확인학습1'] ?? row['문법응용']),
-                    grammarApp2: parseScore(row[`문법 - 부사절, 분사구문 (${level}, 3주차)`] ?? row['문법확인학습2']),
-                    grammarApp3: parseScore(row[`문법 - 명사절, 형용사절 (${level}, 4주차)`] ?? row['문법확인학습3']),
-                    grammarApp4: parseScore(row[`문법 - 준동사 (${level}, 5주차)`] ?? row[`문법 - 준동사 (Advnaced, 5주차)`] ?? row['문법확인학습4']),
-                    // 모의고사 (공통)
-                    mockExam: parseScore(row['주간모의고사-3차'] ?? row['모의고사']),
-                    mockExam2: parseScore(row['주간모의고사-4차']),
-                    // 내신기출 (공통)
+                    grammarApp1: parseScore(row['문법확인학습1'] ?? row['문법확인학습week1'] ?? row['문법응용']),
+                    grammarApp2: parseScore(row['문법확인학습2'] ?? row['문법확인학습week2-1']),
+                    grammarApp3: parseScore(row['문법확인학습3'] ?? row['문법확인학습week2-2']),
+                    grammarApp4: parseScore(row['문법확인학습4'] ?? row['문법확인학습week3-1']),
+                    mockExam: parseScore(row['모의고사']),
                     internalExam: parseScore(row['내신기출']),
-                    // 숙제 (공통)
-                    homework1: parseScore(row['숙제 - 2주차'] ?? row['숙제1'] ?? row['숙제']),
-                    homework2: parseScore(row['숙제 - 3주차'] ?? row['숙제2']),
-                    homework3: parseScore(row['숙제 - 4주차']),
-                    homework4: parseScore(row['숙제 - 5주차'])
+                    homework1: parseScore(row['숙제1'] ?? row['숙제week2'] ?? row['숙제']),
+                    homework2: parseScore(row['숙제2'] ?? row['숙제week3'])
                 });
             }
         });
@@ -404,11 +366,9 @@ export async function loadStudentsFromGoogleSheets(weekId: string = '2025-12-W1'
             class: studentClass,
             school: studentSchool,
             vocab1: null, vocab2: null, vocab3: null, vocab4: null, vocab5: null,
-            vocab6: null, vocab7: null, vocab8: null,
             grammarTheory: null,
             grammarApp1: null, grammarApp2: null, grammarApp3: null, grammarApp4: null,
-            mockExam: null, mockExam2: null, internalExam: null,
-            homework1: null, homework2: null, homework3: null, homework4: null
+            mockExam: null, internalExam: null, homework1: null, homework2: null
         };
 
         // WeeklyReportData 생성
@@ -426,28 +386,19 @@ export async function loadStudentsFromGoogleSheets(weekId: string = '2025-12-W1'
                 grade: 0,
                 max1: weekConfig.maxScores.vocab1,
                 score1: currentScores.vocab1,
-                itemName1: "1주차",
+                itemName1: weekConfig.vocabItemNames.item1,
                 score2: currentScores.vocab2,
                 max2: weekConfig.maxScores.vocab2,
-                itemName2: "2주차-1",
+                itemName2: weekConfig.vocabItemNames.item2,
                 score3: currentScores.vocab3,
                 max3: weekConfig.vocabMaxScores?.vocab3 || 50,
-                itemName3: "2주차-2",
+                itemName3: weekConfig.vocabItemNames.item3,
                 score4: currentScores.vocab4,
                 max4: weekConfig.vocabMaxScores?.vocab4 || 50,
-                itemName4: "3주차-1",
+                itemName4: weekConfig.vocabItemNames.item4,
                 score5: currentScores.vocab5,
                 max5: weekConfig.vocabMaxScores?.vocab5 || 50,
-                itemName5: "3주차-2",
-                score6: currentScores.vocab6,
-                max6: 50,
-                itemName6: "4주차-1",
-                score7: currentScores.vocab7,
-                max7: 50,
-                itemName7: "4주차-2",
-                score8: currentScores.vocab8,
-                max8: 50,
-                itemName8: "5주차-1",
+                itemName5: weekConfig.vocabItemNames.item5,
                 tiedCount: 0,
                 title: "독해단어 (Vocabulary)",
                 weight: areaWeights.vocab
@@ -475,16 +426,16 @@ export async function loadStudentsFromGoogleSheets(weekId: string = '2025-12-W1'
                 ].filter(s => s !== null && s !== undefined).reduce((sum, s) => (sum || 0) + (s || 0), 0) || null,
                 score1: currentScores.grammarApp1 ?? null,
                 max1: weekConfig.grammarAppMaxScores?.item1 || 100,
-                itemName1: "시제, 가정법 (2주차)",
+                itemName1: "문법 응용 1",
                 score2: currentScores.grammarApp2 ?? null,
                 max2: weekConfig.grammarAppMaxScores?.item2 || 100,
-                itemName2: "부사절, 분사구문 (3주차)",
+                itemName2: "문법 응용 2",
                 score3: currentScores.grammarApp3 ?? null,
                 max3: weekConfig.grammarAppMaxScores?.item3 || 100,
-                itemName3: "명사절, 형용사절 (4주차)",
+                itemName3: "문법 응용 3",
                 score4: currentScores.grammarApp4 ?? null,
                 max4: weekConfig.grammarAppMaxScores?.item4 || 100,
-                itemName4: "준동사 (5주차)",
+                itemName4: "문법 응용 4",
                 rank: 0,
                 grade: 0,
                 maxScore: weekConfig.maxScores.grammarApp,
@@ -503,13 +454,7 @@ export async function loadStudentsFromGoogleSheets(weekId: string = '2025-12-W1'
                 tiedCount: 0
             },
             mockExam: {
-                score: [currentScores.mockExam, currentScores.mockExam2].filter(s => s !== null && s !== undefined).reduce((sum, s) => (sum || 0) + (s || 0), 0) || null,
-                score1: currentScores.mockExam ?? null,
-                max1: 100,
-                itemName1: "주간모의고사-3차",
-                score2: currentScores.mockExam2 ?? null,
-                max2: 100,
-                itemName2: "주간모의고사-4차",
+                score: currentScores.mockExam ?? null,
                 rank: 0,
                 grade: 0,
                 mainIdeaScore: 0,
@@ -517,7 +462,7 @@ export async function loadStudentsFromGoogleSheets(weekId: string = '2025-12-W1'
                 wrongQuestions: [],
                 tiedCount: 0,
                 title: weekConfig.mockExamTitle || "모의고사 (Mock Exam)",
-                subtitle: weekConfig.mockExamSubtitle || "주간 모의고사",
+                subtitle: weekConfig.mockExamSubtitle || "고3 모의고사",
                 weight: areaWeights.mockExam
             },
             internalExam: {
@@ -530,16 +475,10 @@ export async function loadStudentsFromGoogleSheets(weekId: string = '2025-12-W1'
                 score: null,
                 score1: currentScores.homework1 ?? null,
                 max1: weekConfig.homeworkMaxScores?.item1 || 100,
-                itemName1: "2주차",
+                itemName1: weekConfig.homeworkItemNames?.item1 || "숙제 1",
                 score2: currentScores.homework2 ?? null,
                 max2: weekConfig.homeworkMaxScores?.item2 || 100,
-                itemName2: "3주차",
-                score3: currentScores.homework3 ?? null,
-                max3: 100,
-                itemName3: "4주차",
-                score4: currentScores.homework4 ?? null,
-                max4: 100,
-                itemName4: "5주차",
+                itemName2: weekConfig.homeworkItemNames?.item2 || "숙제 2",
                 maxScore: weekConfig.maxScores.homework,
                 title: "숙제 (Homework)",
                 weight: areaWeights.homework
@@ -554,10 +493,7 @@ export async function loadStudentsFromGoogleSheets(weekId: string = '2025-12-W1'
             currentScores.vocab2,
             currentScores.vocab3,
             currentScores.vocab4,
-            currentScores.vocab5,
-            currentScores.vocab6,
-            currentScores.vocab7,
-            currentScores.vocab8
+            currentScores.vocab5
         ].filter(score => score !== null && score !== undefined);
 
         if (vocabScoresList.length > 0) {
@@ -567,9 +503,7 @@ export async function loadStudentsFromGoogleSheets(weekId: string = '2025-12-W1'
         // 숙제 합계 계산
         const homeworkScoresList = [
             currentScores.homework1,
-            currentScores.homework2,
-            currentScores.homework3,
-            currentScores.homework4
+            currentScores.homework2
         ].filter(score => score !== null && score !== undefined);
 
         if (homeworkScoresList.length > 0 && history.homework) {
@@ -586,10 +520,7 @@ export async function loadStudentsFromGoogleSheets(weekId: string = '2025-12-W1'
             (currentScores.vocab2 !== null ? (weekConfig.maxScores.vocab2 || 50) : 0) +
             (currentScores.vocab3 !== null ? (weekConfig.vocabMaxScores?.vocab3 || 50) : 0) +
             (currentScores.vocab4 !== null ? (weekConfig.vocabMaxScores?.vocab4 || 50) : 0) +
-            (currentScores.vocab5 !== null ? (weekConfig.vocabMaxScores?.vocab5 || 50) : 0) +
-            (currentScores.vocab6 !== null ? 50 : 0) +
-            (currentScores.vocab7 !== null ? 50 : 0) +
-            (currentScores.vocab8 !== null ? 50 : 0)
+            (currentScores.vocab5 !== null ? (weekConfig.vocabMaxScores?.vocab5 || 50) : 0)
         );
         if (history.vocab.score !== null && vocabMax > 0) {
             totalWeightedScore += (history.vocab.score / vocabMax) * (weights.vocab * 100);
@@ -613,12 +544,8 @@ export async function loadStudentsFromGoogleSheets(weekId: string = '2025-12-W1'
         }
 
         // 4. Mock Exam
-        const mockExamMax = (
-            (currentScores.mockExam !== null ? 100 : 0) +
-            (currentScores.mockExam2 !== null ? 100 : 0)
-        );
-        if (history.mockExam.score !== null && mockExamMax > 0) {
-            totalWeightedScore += (history.mockExam.score / mockExamMax) * (weights.mockExam * 100);
+        if (history.mockExam.score !== null && weekConfig.maxScores.mockExam > 0) {
+            totalWeightedScore += (history.mockExam.score / weekConfig.maxScores.mockExam) * (weights.mockExam * 100);
         }
 
         // 5. Internal Exam
@@ -629,9 +556,7 @@ export async function loadStudentsFromGoogleSheets(weekId: string = '2025-12-W1'
         // 6. Homework
         const homeworkMax = (
             (currentScores.homework1 !== null ? (weekConfig.homeworkMaxScores?.item1 || 100) : 0) +
-            (currentScores.homework2 !== null ? (weekConfig.homeworkMaxScores?.item2 || 100) : 0) +
-            (currentScores.homework3 !== null ? 100 : 0) +
-            (currentScores.homework4 !== null ? 100 : 0)
+            (currentScores.homework2 !== null ? (weekConfig.homeworkMaxScores?.item2 || 100) : 0)
         );
         if (history.homework?.score !== null && history.homework?.score !== undefined && homeworkMax > 0 && weights.homework) {
             totalWeightedScore += (history.homework.score / homeworkMax) * (weights.homework * 100);

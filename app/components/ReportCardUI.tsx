@@ -485,10 +485,7 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
               (currentWeekData.vocab.score2 !== null && currentWeekData.vocab.score2 !== undefined ? (currentWeekData.vocab.max2 || 50) : 0) +
               (currentWeekData.vocab.score3 !== null && currentWeekData.vocab.score3 !== undefined ? (currentWeekData.vocab.max3 || 50) : 0) +
               (currentWeekData.vocab.score4 !== null && currentWeekData.vocab.score4 !== undefined ? (currentWeekData.vocab.max4 || 50) : 0) +
-              (currentWeekData.vocab.score5 !== null && currentWeekData.vocab.score5 !== undefined ? (currentWeekData.vocab.max5 || 50) : 0) +
-              (currentWeekData.vocab.score6 !== null && currentWeekData.vocab.score6 !== undefined ? (currentWeekData.vocab.max6 || 50) : 0) +
-              (currentWeekData.vocab.score7 !== null && currentWeekData.vocab.score7 !== undefined ? (currentWeekData.vocab.max7 || 50) : 0) +
-              (currentWeekData.vocab.score8 !== null && currentWeekData.vocab.score8 !== undefined ? (currentWeekData.vocab.max8 || 50) : 0) || 90
+              (currentWeekData.vocab.score5 !== null && currentWeekData.vocab.score5 !== undefined ? (currentWeekData.vocab.max5 || 50) : 0) || 90
             }
             grade={currentWeekData.vocab.grade}
             rank={currentWeekData.vocab.rank}
@@ -566,54 +563,12 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
               {(currentWeekData.vocab.max5 || 0) > 0 && (
                 <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
                   <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.vocab.itemName5 || "3주차-2"}
+                    {currentWeekData.vocab.itemName5 || "독해단어 5"}
                   </div>
                   <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
                     {currentWeekData.vocab.score5 !== null && currentWeekData.vocab.score5 !== undefined
                       ? `${currentWeekData.vocab.score5} / ${currentWeekData.vocab.max5 || 50}`
                       : (currentWeekData.vocab.status5 || '미응시')}
-                  </div>
-                </div>
-              )}
-
-              {/* 독해단어 6 */}
-              {(currentWeekData.vocab.max6 || 0) > 0 && (
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.vocab.itemName6 || "4주차-1"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.vocab.score6 !== null && currentWeekData.vocab.score6 !== undefined
-                      ? `${currentWeekData.vocab.score6} / ${currentWeekData.vocab.max6 || 50}`
-                      : (currentWeekData.vocab.status6 || '미응시')}
-                  </div>
-                </div>
-              )}
-
-              {/* 독해단어 7 */}
-              {(currentWeekData.vocab.max7 || 0) > 0 && (
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.vocab.itemName7 || "4주차-2"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.vocab.score7 !== null && currentWeekData.vocab.score7 !== undefined
-                      ? `${currentWeekData.vocab.score7} / ${currentWeekData.vocab.max7 || 50}`
-                      : (currentWeekData.vocab.status7 || '미응시')}
-                  </div>
-                </div>
-              )}
-
-              {/* 독해단어 8 */}
-              {(currentWeekData.vocab.max8 || 0) > 0 && (
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.vocab.itemName8 || "5주차-1"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.vocab.score8 !== null && currentWeekData.vocab.score8 !== undefined
-                      ? `${currentWeekData.vocab.score8} / ${currentWeekData.vocab.max8 || 50}`
-                      : (currentWeekData.vocab.status8 || '미응시')}
                   </div>
                 </div>
               )}
@@ -705,10 +660,7 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
               title={currentWeekData.mockExam.title || "모의고사 (Mock Exam)"}
               subtitle={currentWeekData.mockExam.subtitle}
               score={currentWeekData.mockExam.score}
-              maxScore={
-                (currentWeekData.mockExam.score1 !== null && currentWeekData.mockExam.score1 !== undefined ? (currentWeekData.mockExam.max1 || 100) : 0) +
-                (currentWeekData.mockExam.score2 !== null && currentWeekData.mockExam.score2 !== undefined ? (currentWeekData.mockExam.max2 || 100) : 0) || 100
-              }
+              maxScore={100}
               grade={currentWeekData.mockExam.grade}
               rank={currentWeekData.mockExam.rank}
               tiedCount={currentWeekData.mockExam.tiedCount}
@@ -717,35 +669,6 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
               forceOpen={forceOpen}
               showGrade={showSubjectGrade}
             >
-              {/* 모의고사 세부 점수 그리드 */}
-              {(currentWeekData.mockExam.score1 !== null || currentWeekData.mockExam.score2 !== null) && (
-                <div className={clsx(
-                  "grid gap-4",
-                  isPrint ? "mt-1 gap-2" : "mt-4",
-                  (currentWeekData.mockExam.score1 !== null && currentWeekData.mockExam.score2 !== null) ? "grid-cols-2" : "grid-cols-1"
-                )}>
-                  {currentWeekData.mockExam.score1 !== null && currentWeekData.mockExam.score1 !== undefined && (
-                    <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                      <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                        {currentWeekData.mockExam.itemName1 || "주간모의고사-3차"}
-                      </div>
-                      <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                        {currentWeekData.mockExam.score1} / {currentWeekData.mockExam.max1 || 100}
-                      </div>
-                    </div>
-                  )}
-                  {currentWeekData.mockExam.score2 !== null && currentWeekData.mockExam.score2 !== undefined && (
-                    <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                      <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                        {currentWeekData.mockExam.itemName2 || "주간모의고사-4차"}
-                      </div>
-                      <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                        {currentWeekData.mockExam.score2} / {currentWeekData.mockExam.max2 || 100}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
               {currentWeekData.mockExam.wrongQuestions.length > 0 ? (
                 <>
                   <div className={clsx("grid grid-cols-2 gap-4", isPrint ? "mt-1 mb-1 gap-2" : "mt-4 mb-4")}>
@@ -785,9 +708,7 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
               score={currentWeekData.homework?.score}
               maxScore={
                 (currentWeekData.homework?.score1 !== null ? (currentWeekData.homework?.max1 || 100) : 0) +
-                (currentWeekData.homework?.score2 !== null ? (currentWeekData.homework?.max2 || 100) : 0) +
-                (currentWeekData.homework?.score3 !== null ? (currentWeekData.homework?.max3 || 100) : 0) +
-                (currentWeekData.homework?.score4 !== null ? (currentWeekData.homework?.max4 || 100) : 0) || 100
+                (currentWeekData.homework?.score2 !== null ? (currentWeekData.homework?.max2 || 100) : 0) || 100
               }
               grade={0} // 등급 없음
               rank={0} // 석차 없음
@@ -797,17 +718,16 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
               showGrade={false}
             >
               {/* 숙제 세부 점수 그리드 */}
-              {(currentWeekData.homework?.score1 !== null || currentWeekData.homework?.score2 !== null ||
-                currentWeekData.homework?.score3 !== null || currentWeekData.homework?.score4 !== null) && (
+              {(currentWeekData.homework?.score1 !== null || currentWeekData.homework?.score2 !== null) && (
                 <div className={clsx(
                   "grid gap-4",
                   isPrint ? "mt-1 gap-2" : "mt-4",
-                  "grid-cols-2 sm:grid-cols-4"
+                  (currentWeekData.homework?.score1 !== null && currentWeekData.homework?.score2 !== null) ? "grid-cols-2" : "grid-cols-1"
                 )}>
                   {currentWeekData.homework?.score1 !== null && (
                     <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
                       <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                        {currentWeekData.homework?.itemName1 || "2주차"}
+                        {currentWeekData.homework?.itemName1 || "숙제 1"}
                       </div>
                       <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
                         {currentWeekData.homework?.score1} / {currentWeekData.homework?.max1 || 100}
@@ -817,30 +737,10 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
                   {currentWeekData.homework?.score2 !== null && (
                     <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
                       <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                        {currentWeekData.homework?.itemName2 || "3주차"}
+                        {currentWeekData.homework?.itemName2 || "숙제 2"}
                       </div>
                       <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
                         {currentWeekData.homework?.score2} / {currentWeekData.homework?.max2 || 100}
-                      </div>
-                    </div>
-                  )}
-                  {currentWeekData.homework?.score3 !== null && (
-                    <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                      <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                        {currentWeekData.homework?.itemName3 || "4주차"}
-                      </div>
-                      <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                        {currentWeekData.homework?.score3} / {currentWeekData.homework?.max3 || 100}
-                      </div>
-                    </div>
-                  )}
-                  {currentWeekData.homework?.score4 !== null && (
-                    <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                      <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                        {currentWeekData.homework?.itemName4 || "5주차"}
-                      </div>
-                      <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                        {currentWeekData.homework?.score4} / {currentWeekData.homework?.max4 || 100}
                       </div>
                     </div>
                   )}
