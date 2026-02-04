@@ -471,117 +471,30 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
               // 동적으로 컬럼 수 조정 (최대 3열, 4개 이상이면 2열/3열 등)
               "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
             )}>
-              {/* 독해단어 1 */}
-              {(currentWeekData.vocab.max1 || 0) > 0 && (
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.vocab.itemName1 || "Week1"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.vocab.score1 !== null && currentWeekData.vocab.score1 !== undefined
-                      ? `${currentWeekData.vocab.score1} / ${currentWeekData.vocab.max1 || 50}`
-                      : "미응시"}
-                  </div>
-                </div>
-              )}
+              {/* 독해단어 항목들 - 퍼센트로 표시 */}
+              {(() => {
+                const vocabItems = [
+                  { score: currentWeekData.vocab.score1, name: currentWeekData.vocab.itemName1, default: "1주차" },
+                  { score: currentWeekData.vocab.score2, name: currentWeekData.vocab.itemName2, default: "2주차-1" },
+                  { score: currentWeekData.vocab.score3, name: currentWeekData.vocab.itemName3, default: "2주차-2" },
+                  { score: currentWeekData.vocab.score4, name: currentWeekData.vocab.itemName4, default: "3주차-1" },
+                  { score: currentWeekData.vocab.score5, name: currentWeekData.vocab.itemName5, default: "3주차-2" },
+                  { score: currentWeekData.vocab.score6, name: currentWeekData.vocab.itemName6, default: "4주차-1" },
+                  { score: currentWeekData.vocab.score7, name: currentWeekData.vocab.itemName7, default: "4주차-2" },
+                  { score: currentWeekData.vocab.score8, name: currentWeekData.vocab.itemName8, default: "5주차-1" },
+                ].filter(item => item.score !== null && item.score !== undefined);
 
-              {/* 독해단어 2 */}
-              {(currentWeekData.vocab.max2 || 0) > 0 && (
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.vocab.itemName2 || "Week2-1"}
+                return vocabItems.map((item, idx) => (
+                  <div key={idx} className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
+                    <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
+                      {item.name || item.default}
+                    </div>
+                    <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
+                      {item.score}%
+                    </div>
                   </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.vocab.score2 !== null && currentWeekData.vocab.score2 !== undefined
-                      ? `${currentWeekData.vocab.score2} / ${currentWeekData.vocab.max2 || 50}`
-                      : "미응시"}
-                  </div>
-                </div>
-              )}
-
-              {/* 독해단어 3 */}
-              {(currentWeekData.vocab.max3 || 0) > 0 && (
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.vocab.itemName3 || "Week2-2"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.vocab.score3 !== null && currentWeekData.vocab.score3 !== undefined
-                      ? `${currentWeekData.vocab.score3} / ${currentWeekData.vocab.max3 || 50}`
-                      : "미응시"}
-                  </div>
-                </div>
-              )}
-
-              {/* 독해단어 4 */}
-              {(currentWeekData.vocab.max4 || 0) > 0 && (
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.vocab.itemName4 || "Week3-1"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.vocab.score4 !== null && currentWeekData.vocab.score4 !== undefined
-                      ? `${currentWeekData.vocab.score4} / ${currentWeekData.vocab.max4 || 50}`
-                      : "미응시"}
-                  </div>
-                </div>
-              )}
-
-              {/* 독해단어 5 */}
-              {(currentWeekData.vocab.max5 || 0) > 0 && (
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.vocab.itemName5 || "독해단어 5"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.vocab.score5 !== null && currentWeekData.vocab.score5 !== undefined
-                      ? `${currentWeekData.vocab.score5} / ${currentWeekData.vocab.max5 || 50}`
-                      : (currentWeekData.vocab.status5 || '미응시')}
-                  </div>
-                </div>
-              )}
-
-              {/* 독해단어 6 */}
-              {(currentWeekData.vocab.max6 || 0) > 0 && (
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.vocab.itemName6 || "독해단어 6"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.vocab.score6 !== null && currentWeekData.vocab.score6 !== undefined
-                      ? `${currentWeekData.vocab.score6} / ${currentWeekData.vocab.max6 || 50}`
-                      : (currentWeekData.vocab.status6 || '미응시')}
-                  </div>
-                </div>
-              )}
-
-              {/* 독해단어 7 */}
-              {(currentWeekData.vocab.max7 || 0) > 0 && (
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.vocab.itemName7 || "독해단어 7"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.vocab.score7 !== null && currentWeekData.vocab.score7 !== undefined
-                      ? `${currentWeekData.vocab.score7} / ${currentWeekData.vocab.max7 || 50}`
-                      : (currentWeekData.vocab.status7 || '미응시')}
-                  </div>
-                </div>
-              )}
-
-              {/* 독해단어 8 */}
-              {(currentWeekData.vocab.max8 || 0) > 0 && (
-                <div className={clsx("bg-slate-50 rounded-md text-center", isPrint ? "p-1.5" : "p-3")}>
-                  <div className={clsx("text-slate-500 mb-0.5", isPrint ? "text-[10px]" : "text-sm")}>
-                    {currentWeekData.vocab.itemName8 || "독해단어 8"}
-                  </div>
-                  <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                    {currentWeekData.vocab.score8 !== null && currentWeekData.vocab.score8 !== undefined
-                      ? `${currentWeekData.vocab.score8} / ${currentWeekData.vocab.max8 || 50}`
-                      : (currentWeekData.vocab.status8 || '미응시')}
-                  </div>
-                </div>
-              )}
+                ));
+              })()}
             </div>
           </SubjectSection>
         )
@@ -610,21 +523,20 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
               forceOpen={forceOpen}
               showGrade={showSubjectGrade}
             >
-              {/* 문법 확인학습 세부 점수 그리드 - 설정된 항목만 동적 표시 */}
+              {/* 문법 확인학습 세부 점수 그리드 - 퍼센트로 표시 */}
               {(() => {
-                // 표시할 항목 수 계산
                 const grammarItems = [
-                  { max: currentWeekData.grammarApp.max1, score: currentWeekData.grammarApp.score1, name: currentWeekData.grammarApp.itemName1, default: "문법 확인학습 1" },
-                  { max: currentWeekData.grammarApp.max2, score: currentWeekData.grammarApp.score2, name: currentWeekData.grammarApp.itemName2, default: "문법 확인학습 2" },
-                  { max: currentWeekData.grammarApp.max3, score: currentWeekData.grammarApp.score3, name: currentWeekData.grammarApp.itemName3, default: "문법 확인학습 3" },
-                  { max: currentWeekData.grammarApp.max4, score: currentWeekData.grammarApp.score4, name: currentWeekData.grammarApp.itemName4, default: "문법 확인학습 4" },
-                ].filter(item => (item.max || 0) > 0);
-                
-                const colsClass = grammarItems.length === 1 ? "grid-cols-1" 
-                  : grammarItems.length === 2 ? "grid-cols-2" 
-                  : grammarItems.length === 3 ? "grid-cols-3" 
+                  { score: currentWeekData.grammarApp.score1, name: currentWeekData.grammarApp.itemName1, default: "문법 1" },
+                  { score: currentWeekData.grammarApp.score2, name: currentWeekData.grammarApp.itemName2, default: "문법 2" },
+                  { score: currentWeekData.grammarApp.score3, name: currentWeekData.grammarApp.itemName3, default: "문법 3" },
+                  { score: currentWeekData.grammarApp.score4, name: currentWeekData.grammarApp.itemName4, default: "문법 4" },
+                ].filter(item => item.score !== null && item.score !== undefined);
+
+                const colsClass = grammarItems.length === 1 ? "grid-cols-1"
+                  : grammarItems.length === 2 ? "grid-cols-2"
+                  : grammarItems.length === 3 ? "grid-cols-3"
                   : "grid-cols-4";
-                
+
                 return grammarItems.length > 0 ? (
                   <div className={clsx("grid gap-4", isPrint ? "mt-1 gap-2" : "mt-4", colsClass)}>
                     {grammarItems.map((item, idx) => (
@@ -633,9 +545,7 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
                           {item.name || item.default}
                         </div>
                         <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                          {item.score !== null && item.score !== undefined
-                            ? `${item.score} / ${item.max || 100}`
-                            : "미응시"}
+                          {item.score}%
                         </div>
                       </div>
                     ))}
@@ -701,7 +611,7 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
                           {item.name || item.default}
                         </div>
                         <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                          {item.score} / {item.max || 100}
+                          {item.score}%
                         </div>
                       </div>
                     ))}
@@ -780,7 +690,7 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
                           {item.name || item.default}
                         </div>
                         <div className={clsx("font-semibold text-slate-700", isPrint ? "text-[12px]" : "text-xl")}>
-                          {item.score} / {item.max || 100}
+                          {item.score}%
                         </div>
                       </div>
                     ))}
