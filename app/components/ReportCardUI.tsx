@@ -13,7 +13,7 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-import { ChevronDown, ChevronUp, Eye, EyeOff, ChevronRight, Settings } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronRight, Settings } from "lucide-react";
 import { Student } from "@/lib/data";
 import clsx from "clsx";
 
@@ -32,8 +32,7 @@ interface ReportCardUIProps {
 }
 
 export default function ReportCardUI({ student, selectedCategories, isPrint = false, forceOpen = false, isEditing = false, onCommentChange, selectedMetrics: propSelectedMetrics, onMetricsChange, showSubjectGrade: propShowSubjectGrade, onShowSubjectGradeChange, reportSettings }: ReportCardUIProps) {
-  const [showRank, setShowRank] = useState(false);
-  const [internalSelectedMetrics, setInternalSelectedMetrics] = useState<string[]>(['grade', 'score', 'growth', 'radarChart', 'growthChart']); // 내부 선택 상태 (props가 없을 때 사용)
+  const [internalSelectedMetrics, setInternalSelectedMetrics] = useState<string[]>(['score', 'growth', 'radarChart', 'growthChart']); // 내부 선택 상태 (props가 없을 때 사용) - grade 제거
   const [internalShowSubjectGrade, setInternalShowSubjectGrade] = useState(true); // 내부 등급 표시 상태 (props가 없을 때 사용)
   const [isMetricsOptionsOpen, setIsMetricsOptionsOpen] = useState(false);
   const metricsOptionsRef = React.useRef<HTMLDivElement>(null);
@@ -256,21 +255,6 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
                 <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
                   <input
                     type="checkbox"
-                    checked={selectedMetrics.includes('grade')}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        handleMetricsChange([...selectedMetrics, 'grade']);
-                      } else {
-                        handleMetricsChange(selectedMetrics.filter(m => m !== 'grade'));
-                      }
-                    }}
-                    className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-                  />
-                  <span className="text-base text-slate-700">종합 등급</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded">
-                  <input
-                    type="checkbox"
                     checked={selectedMetrics.includes('score')}
                     onChange={(e) => {
                       if (e.target.checked) {
@@ -362,42 +346,6 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
             })(),
             isPrint ? "mb-2 gap-2" : "mb-6"
           )}>
-            {/* Grade Card with Toggle Interaction */}
-            {selectedMetrics.includes('grade') && (
-              <div
-                onClick={() => setShowRank(!showRank)}
-                className={clsx(
-                  "bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col gap-1 print:border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors relative group",
-                  isPrint ? "p-2.5" : "p-5 gap-2"
-                )}
-              >
-                <div className="flex justify-between items-start">
-                  <span className={clsx("text-slate-500 font-light", isPrint ? "text-[11px]" : "text-base")}>
-                    {showRank ? "전체 석차" : "종합 등급"}
-                  </span>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400">
-                    {showRank ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </div>
-                </div>
-                <div>
-                  <span className={clsx("font-semibold text-slate-800", isPrint ? "text-xl" : "text-3xl")}>
-                    {showRank
-                      ? (
-                        <span className="flex items-center gap-1">
-                          {currentWeekData.totalRank} / {currentWeekData.totalStudents}
-                        </span>
-                      )
-                      : (
-                        <span className="flex items-center gap-1">
-                          {currentWeekData.totalGrade}등급
-                        </span>
-                      )
-                    }
-                  </span>
-                </div>
-              </div>
-            )}
-
             {selectedMetrics.includes('score') && (
               <MetricCard
                 label="종합 점수"
@@ -845,31 +793,6 @@ export default function ReportCardUI({ student, selectedCategories, isPrint = fa
 
       </div >
 
-      {/* Comprehensive Analysis Comment Section - Full Width Bottom */}
-      <section className={clsx(
-        "bg-slate-50 border border-slate-200 rounded-xl flex flex-col",
-        isPrint ? "p-2 mt-1.5" : "p-6 mt-6 min-h-[150px]"
-      )}>
-        <h3 className={clsx("font-semibold text-slate-800 mb-1 flex items-center gap-2", isPrint ? "text-[11px]" : "text-lg")}>
-          종합 분석 (Comprehensive Analysis)
-        </h3>
-
-        {isEditing ? (
-          <textarea
-            className="w-full h-full p-2 border border-slate-300 rounded-md text-base text-slate-700 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={currentWeekData.comment || ""}
-            onChange={(e) => {
-              currentWeekData.comment = e.target.value;
-              onCommentChange?.(e.target.value);
-            }}
-          />
-        ) : (
-          <div className={clsx("text-slate-700 text-justify", isPrint ? "text-[10px] leading-snug tracking-tight" : "text-lg leading-relaxed")}>
-            {(currentWeekData.comment || "코멘트가 없습니다.").replace(/[\n\r]+/g, ' ').replace(/\s+/g, ' ').trim()}
-          </div>
-        )}
-      </section>
-
       {/* Footer */}
       <footer className={clsx("border-t border-slate-200 text-center text-slate-400 font-light", isPrint ? "mt-1 pt-1 text-[9px]" : "mt-auto pt-8 text-sm")} >
         <p>{reportSettings?.title || '양영학원 고등 영어과'}</p>
@@ -949,7 +872,7 @@ function SubjectSection({ title, subtitle, score, maxScore, grade, rank, tiedCou
           <div className="text-right">
             <span className={clsx("text-slate-400 block", isPrint ? "text-[10px]" : "text-sm")}>점수</span>
             <span className={clsx("font-semibold text-slate-800", isPrint ? "text-[12px]" : "text-lg")}>
-              {score !== null ? `${score} / ${maxScore}` : '미응시'}
+              {score !== null ? `${Math.round((score / maxScore) * 100)}%` : '미응시'}
             </span>
           </div>
           {showGrade && (
