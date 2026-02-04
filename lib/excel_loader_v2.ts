@@ -10,6 +10,40 @@ const STUDENTS_INFO_PATH = path.join(process.cwd(), 'data', 'students.xlsx');
 const SCORES_DIR = path.join(process.cwd(), 'data', 'scores');
 
 /**
+ * 주어진 weekId에 해당하는 Excel 파일 경로를 찾습니다.
+ * 파일명에 공백이 있을 수 있으므로 여러 패턴으로 검색합니다.
+ */
+async function findExcelFile(weekId: string): Promise<string> {
+    // 먼저 정확한 파일명으로 시도
+    const exactPath = path.join(SCORES_DIR, `${weekId}.xlsx`);
+    try {
+        await fs.access(exactPath);
+        return exactPath;
+    } catch {
+        // 정확한 파일명이 없으면 디렉토리에서 검색
+    }
+
+    // 디렉토리에서 weekId로 시작하는 파일 검색
+    try {
+        const files = await fs.readdir(SCORES_DIR);
+        const matchingFile = files.find(file => {
+            if (!file.endsWith('.xlsx')) return false;
+            const fileWeekId = file.replace('.xlsx', '').trim();
+            return fileWeekId === weekId || fileWeekId === weekId.trim();
+        });
+
+        if (matchingFile) {
+            return path.join(SCORES_DIR, matchingFile);
+        }
+    } catch {
+        // 디렉토리가 없는 경우
+    }
+
+    // 기본 경로 반환 (오류는 호출하는 쪽에서 처리)
+    return exactPath;
+}
+
+/**
  * 학생 기본정보를 Excel에서 읽어옵니다.
  */
 /**
@@ -59,8 +93,8 @@ export async function loadStudentDatabase(): Promise<Map<string, { name: string;
  * "설정" 시트가 있으면 읽고, 없으면 기본값 사용
  */
 export async function loadWeekConfig(weekId: string): Promise<WeekConfig> {
-    const fileName = `${weekId}.xlsx`;
-    const filePath = path.join(SCORES_DIR, fileName);
+    // 파일명에 공백이 있을 수 있으므로 먼저 정확한 파일명을 찾음
+    const filePath = await findExcelFile(weekId);
 
     try {
         const fileBuffer = await fs.readFile(filePath);
@@ -301,9 +335,8 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
     homework1?: number | null;
     homework2?: number | null;
 }>> {
-    // weekId를 파일명으로 변환 (예: "2025-12-W1" -> "2025-12-W1.xlsx")
-    const fileName = `${weekId}.xlsx`;
-    const filePath = path.join(SCORES_DIR, fileName);
+    // 파일명에 공백이 있을 수 있으므로 먼저 정확한 파일명을 찾음
+    const filePath = await findExcelFile(weekId);
 
     try {
         const fileBuffer = await fs.readFile(filePath);

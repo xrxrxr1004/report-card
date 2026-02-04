@@ -36,9 +36,10 @@ export async function GET() {
         const files = await fs.readdir(SCORES_DIR);
 
         // .xlsx 파일만 필터링하고 확장자 제거하여 weekId 추출
+        // trim()으로 파일명 앞뒤 공백 제거
         const weeks = files
             .filter(file => file.endsWith('.xlsx'))
-            .map(file => file.replace('.xlsx', ''));
+            .map(file => file.replace('.xlsx', '').trim());
 
         // 역순 정렬 (최신 주차가 먼저 오도록)
         weeks.sort((a, b) => b.localeCompare(a));
