@@ -370,63 +370,62 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
             homework2?: number | null;
         }>();
 
+        // 컬럼 키 목록 추출
+        const keys = scoreData.length > 0 ? Object.keys(scoreData[0]) : [];
+
+        // 동적 컬럼 매핑 - 실제 컬럼명 패턴에 맞춤
+        // 단어 컬럼: "단어 - 1주차 (Advanced)" 형태
+        const vocabKeys = keys.filter(k => k.includes('단어'));
+        // 문법 컬럼: "문법 - 시제, 가정법 (Advanced, 2주차)" 형태
+        const grammarKeys = keys.filter(k => k.startsWith('문법 -') || k.startsWith('문법-'));
+        // 숙제 컬럼: "숙제 - 2주차" 형태
+        const homeworkKeys = keys.filter(k => k.includes('숙제'));
+        // 모의고사 컬럼: "주간모의고사-3차" 형태
+        const mockExamKeys = keys.filter(k => k.includes('모의고사'));
+        // 학교 컬럼: "이름_1" 또는 "학교"
+        const schoolKey = keys.find(k => k === '학교') || keys.find(k => k === '이름_1') || '학교';
+
         scoreData.forEach(row => {
             const name = row['이름']?.toString().trim();
             if (name) {
-                // 독해단어 컬럼 동적 읽기
-                // User structure: Week1, Week2-1, Week2-2, Week3-1
-                const vocabScores: Record<string, number | null> = {};
-                Object.keys(row).forEach(key => {
-                    const normalizedKey = key.replace(/\s+/g, '').toLowerCase();
-                    if (normalizedKey.includes('단어') || normalizedKey.includes('vocab')) {
-                        // Strict matching for specific exam names
-                        if (normalizedKey.includes('week1') && !normalizedKey.includes('week1-2')) vocabScores['vocab1'] = parseScore(row[key]); // Handles 'Week1', 'Week1-1'
-                        else if (normalizedKey.includes('week2-1')) vocabScores['vocab2'] = parseScore(row[key]);
-                        else if (normalizedKey.includes('week2-2')) vocabScores['vocab3'] = parseScore(row[key]);
-                        else if (normalizedKey.includes('week3-1')) vocabScores['vocab4'] = parseScore(row[key]);
-                    }
-                });
+                // 학교 정보 (이름_1 컬럼이 학교인 경우)
+                const school = row[schoolKey]?.toString().trim() || '';
 
-                // Fallback explicit keys
-                const v1Key = Object.keys(row).find(k => k.replace(/\s+/g, '').toLowerCase().includes('week1') && !k.includes('week1-2') && !k.includes('week2') && !k.includes('week3')) || '독해단어1';
-                const v2Key = Object.keys(row).find(k => k.replace(/\s+/g, '').toLowerCase().includes('week2-1')) || '독해단어2';
-                const v3Key = Object.keys(row).find(k => k.replace(/\s+/g, '').toLowerCase().includes('week2-2')) || '독해단어3';
-                const v4Key = Object.keys(row).find(k => k.replace(/\s+/g, '').toLowerCase().includes('week3-1')) || '독해단어4';
+                // 단어 점수 추출 (퍼센트 → 100점 만점 변환)
+                const vocabScores: (number | null)[] = vocabKeys.map(k => parsePercentScore(row[k]));
 
-                // 문법 확인학습 (Grammar Check) - 키 검색을 통해 공백 포함 여부 확인
-                const ga1Key = Object.keys(row).find(k => k.replace(/\s+/g, '') === '문법확인학습week1') || '문법1';
-                const ga2Key = Object.keys(row).find(k => k.replace(/\s+/g, '') === '문법확인학습week2-1') || '문법2';
-                const ga3Key = Object.keys(row).find(k => k.replace(/\s+/g, '') === '문법확인학습week2-2') || '문법3';
-                const ga4Key = Object.keys(row).find(k => k.replace(/\s+/g, '') === '문법확인학습week3-1') || '문법4';
-                const homeworkKey1 = Object.keys(row).find(k => k.replace(/\s+/g, '') === '숙제week2') || '숙제1';
-                const homeworkKey2 = Object.keys(row).find(k => k.replace(/\s+/g, '') === '숙제week3') || '숙제2';
+                // 문법 점수 추출 (퍼센트 → 100점 만점 변환)
+                const grammarScores: (number | null)[] = grammarKeys.map(k => parsePercentScore(row[k]));
 
-                let ga1 = parseScore(row[ga1Key]) ?? parseScore(row['문법확인학습week1']) ?? parseScore(row['문법응용']); // Fallback to direct keys just in case
-                let ga2 = parseScore(row[ga2Key]) ?? parseScore(row['문법확인학습week2-1']);
-                let ga3 = parseScore(row[ga3Key]) ?? parseScore(row['문법확인학습week2-2']);
-                let ga4 = parseScore(row[ga4Key]) ?? parseScore(row['문법확인학습week3-1']);
+                // 숙제 점수 추출 (퍼센트 → 100점 만점 변환)
+                const homeworkScores: (number | null)[] = homeworkKeys.map(k => parsePercentScore(row[k]));
 
-                let homework1 = parseScore(row[homeworkKey1]) ?? parseScore(row['숙제']) ?? parseScore(row['숙제week2']);
-                let homework2 = parseScore(row[homeworkKey2]) ?? parseScore(row['숙제week3']);
+                // 모의고사 점수 (퍼센트 → 100점 만점 변환)
+                const mockScores: (number | null)[] = mockExamKeys.map(k => parsePercentScore(row[k]));
+                // 여러 모의고사 중 첫 번째 유효한 값 사용 (또는 평균)
+                const validMockScores = mockScores.filter(s => s !== null) as number[];
+                const mockExamScore = validMockScores.length > 0
+                    ? validMockScores.reduce((a, b) => a + b, 0) / validMockScores.length
+                    : null;
 
                 scoresMap.set(name, {
                     name: name,
                     class: row['반']?.toString().trim() || '',
-                    school: row['학교']?.toString().trim() || '',
-                    vocab1: vocabScores['vocab1'] ?? parseScore(row[v1Key]) ?? parseScore(row['단어시험week1']),
-                    vocab2: vocabScores['vocab2'] ?? parseScore(row[v2Key]) ?? parseScore(row['단어시험week2-1']),
-                    vocab3: vocabScores['vocab3'] ?? parseScore(row[v3Key]) ?? parseScore(row['단어시험week2-2']),
-                    vocab4: vocabScores['vocab4'] ?? parseScore(row[v4Key]) ?? parseScore(row['단어시험week3-1']),
-                    vocab5: null, // Explicitly null as per request there are only 4 exams
-                    grammarTheory: parseScore(row['문법이론']),
-                    grammarApp1: ga1,
-                    grammarApp2: ga2,
-                    grammarApp3: ga3,
-                    grammarApp4: ga4,
-                    mockExam: parseScore(row['모의고사']),
+                    school: school,
+                    vocab1: vocabScores[0] ?? null,
+                    vocab2: vocabScores[1] ?? null,
+                    vocab3: vocabScores[2] ?? null,
+                    vocab4: vocabScores[3] ?? null,
+                    vocab5: vocabScores[4] ?? null,
+                    grammarTheory: null, // 문법이론은 별도 없음
+                    grammarApp1: grammarScores[0] ?? null,
+                    grammarApp2: grammarScores[1] ?? null,
+                    grammarApp3: grammarScores[2] ?? null,
+                    grammarApp4: grammarScores[3] ?? null,
+                    mockExam: mockExamScore !== null ? Math.round(mockExamScore) : null,
                     internalExam: parseScore(row['내신기출']),
-                    homework1: homework1,
-                    homework2: homework2
+                    homework1: homeworkScores[0] ?? null,
+                    homework2: homeworkScores[1] ?? null
                 });
             }
         });
@@ -446,6 +445,26 @@ function parseScore(value: any): number | null {
     if (typeof value === 'number') return value;
     const str = value.toString().trim();
     if (str === '' || str.toLowerCase() === '미응시' || str.toLowerCase() === 'null') return null;
+    const num = parseFloat(str);
+    return isNaN(num) ? null : num;
+}
+
+/**
+ * 퍼센트 점수 (0~1)를 100점 만점으로 변환합니다.
+ */
+function parsePercentScore(value: any): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const str = value.toString().trim();
+    if (str === '' || str.toLowerCase() === '미응시' || str.toLowerCase() === 'null') return null;
+
+    if (typeof value === 'number') {
+        // 0~1 범위면 100 곱함, 이미 100점 만점이면 그대로
+        if (value >= 0 && value <= 1) {
+            return Math.round(value * 100);
+        }
+        return Math.round(value);
+    }
+
     const num = parseFloat(str);
     return isNaN(num) ? null : num;
 }
