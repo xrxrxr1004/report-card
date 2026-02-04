@@ -348,7 +348,17 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
         ) || workbook.SheetNames.find(name => !name.includes('기본정보') && !name.includes('설정')) || workbook.SheetNames[0];
 
         const scoreSheet = workbook.Sheets[scoreSheetName];
-        const scoreData = XLSX.utils.sheet_to_json(scoreSheet) as any[];
+
+        // header: 1 옵션으로 배열 형태로 읽기 (중복 컬럼명 처리를 위해)
+        const rawData = XLSX.utils.sheet_to_json(scoreSheet, { header: 1 }) as any[][];
+
+        if (rawData.length < 2) {
+            console.warn('성적 데이터가 없습니다.');
+            return new Map();
+        }
+
+        const headers = rawData[0] as string[];
+        const dataRows = rawData.slice(1);
 
         const scoresMap = new Map<string, {
             name: string;
@@ -370,47 +380,60 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
             homework2?: number | null;
         }>();
 
-        // 컬럼 키 목록 추출
-        const keys = scoreData.length > 0 ? Object.keys(scoreData[0]) : [];
+        // 컬럼 인덱스 찾기
+        const nameIdx = headers.findIndex(h => h === '이름');
+        // 두 번째 '이름' 컬럼은 학교 정보
+        const schoolIdx = headers.findIndex((h, i) => h === '이름' && i > nameIdx);
+        const classIdx = headers.findIndex(h => h === '반');
 
-        // 동적 컬럼 매핑 - 실제 컬럼명 패턴에 맞춤
-        // 단어 컬럼: "단어 - 1주차 (Advanced)" 형태
-        const vocabKeys = keys.filter(k => k.includes('단어'));
-        // 문법 컬럼: "문법 - 시제, 가정법 (Advanced, 2주차)" 형태
-        const grammarKeys = keys.filter(k => k.startsWith('문법 -') || k.startsWith('문법-'));
-        // 숙제 컬럼: "숙제 - 2주차" 형태
-        const homeworkKeys = keys.filter(k => k.includes('숙제'));
-        // 모의고사 컬럼: "주간모의고사-3차" 형태
-        const mockExamKeys = keys.filter(k => k.includes('모의고사'));
-        // 학교 컬럼: "이름_1" 또는 "학교"
-        const schoolKey = keys.find(k => k === '학교') || keys.find(k => k === '이름_1') || '학교';
+        // 동적 컬럼 인덱스 매핑
+        const vocabIndices = headers.map((h, i) => h && h.includes('단어') ? i : -1).filter(i => i !== -1);
+        const grammarIndices = headers.map((h, i) => h && (h.startsWith('문법 -') || h.startsWith('문법-')) ? i : -1).filter(i => i !== -1);
+        const homeworkIndices = headers.map((h, i) => h && h.includes('숙제') ? i : -1).filter(i => i !== -1);
+        const mockExamIndices = headers.map((h, i) => h && h.includes('모의고사') ? i : -1).filter(i => i !== -1);
 
-        scoreData.forEach(row => {
-            const name = row['이름']?.toString().trim();
+        console.log(`[Excel Loader] 컬럼 매핑 - 이름:${nameIdx}, 학교:${schoolIdx}, 반:${classIdx}`);
+        console.log(`[Excel Loader] 단어 컬럼(${vocabIndices.length}개):`, vocabIndices.map(i => headers[i]));
+        console.log(`[Excel Loader] 문법 컬럼(${grammarIndices.length}개):`, grammarIndices.map(i => headers[i]));
+        console.log(`[Excel Loader] 숙제 컬럼(${homeworkIndices.length}개):`, homeworkIndices.map(i => headers[i]));
+        console.log(`[Excel Loader] 모의고사 컬럼(${mockExamIndices.length}개):`, mockExamIndices.map(i => headers[i]));
+
+        dataRows.forEach((row, rowIdx) => {
+            const name = row[nameIdx]?.toString().trim();
             if (name) {
-                // 학교 정보 (이름_1 컬럼이 학교인 경우)
-                const school = row[schoolKey]?.toString().trim() || '';
+                // 학교 정보 (두 번째 '이름' 컬럼)
+                const school = schoolIdx !== -1 ? (row[schoolIdx]?.toString().trim() || '') : '';
+                const studentClass = classIdx !== -1 ? (row[classIdx]?.toString().trim() || '') : '';
 
                 // 단어 점수 추출 (퍼센트 → 100점 만점 변환)
-                const vocabScores: (number | null)[] = vocabKeys.map(k => parsePercentScore(row[k]));
+                const vocabScores: (number | null)[] = vocabIndices.map(i => parsePercentScore(row[i]));
 
                 // 문법 점수 추출 (퍼센트 → 100점 만점 변환)
-                const grammarScores: (number | null)[] = grammarKeys.map(k => parsePercentScore(row[k]));
+                const grammarScores: (number | null)[] = grammarIndices.map(i => parsePercentScore(row[i]));
 
                 // 숙제 점수 추출 (퍼센트 → 100점 만점 변환)
-                const homeworkScores: (number | null)[] = homeworkKeys.map(k => parsePercentScore(row[k]));
+                const homeworkScores: (number | null)[] = homeworkIndices.map(i => parsePercentScore(row[i]));
 
                 // 모의고사 점수 (퍼센트 → 100점 만점 변환)
-                const mockScores: (number | null)[] = mockExamKeys.map(k => parsePercentScore(row[k]));
-                // 여러 모의고사 중 첫 번째 유효한 값 사용 (또는 평균)
+                const mockScores: (number | null)[] = mockExamIndices.map(i => parsePercentScore(row[i]));
+                // 여러 모의고사 중 마지막 유효한 값 사용 (가장 최근 시험)
                 const validMockScores = mockScores.filter(s => s !== null) as number[];
                 const mockExamScore = validMockScores.length > 0
-                    ? validMockScores.reduce((a, b) => a + b, 0) / validMockScores.length
+                    ? validMockScores[validMockScores.length - 1]
                     : null;
+
+                // 첫 번째 학생 데이터 로그
+                if (rowIdx === 0) {
+                    console.log(`[Excel Loader] 첫 번째 학생: ${name}, 학교: ${school}, 반: ${studentClass}`);
+                    console.log(`[Excel Loader] 단어점수:`, vocabScores);
+                    console.log(`[Excel Loader] 문법점수:`, grammarScores);
+                    console.log(`[Excel Loader] 숙제점수:`, homeworkScores);
+                    console.log(`[Excel Loader] 모의고사:`, mockScores, '→', mockExamScore);
+                }
 
                 scoresMap.set(name, {
                     name: name,
-                    class: row['반']?.toString().trim() || '',
+                    class: studentClass,
                     school: school,
                     vocab1: vocabScores[0] ?? null,
                     vocab2: vocabScores[1] ?? null,
@@ -423,13 +446,14 @@ export async function loadWeekScores(weekId: string): Promise<Map<string, {
                     grammarApp3: grammarScores[2] ?? null,
                     grammarApp4: grammarScores[3] ?? null,
                     mockExam: mockExamScore !== null ? Math.round(mockExamScore) : null,
-                    internalExam: parseScore(row['내신기출']),
+                    internalExam: null, // 내신기출은 별도 시트
                     homework1: homeworkScores[0] ?? null,
                     homework2: homeworkScores[1] ?? null
                 });
             }
         });
 
+        console.log(`[Excel Loader] 총 ${scoresMap.size}명의 학생 데이터 로드 완료`);
         return scoresMap;
     } catch (error) {
         console.error(`주차별 성적 파일을 읽을 수 없습니다: ${filePath}`, error);
