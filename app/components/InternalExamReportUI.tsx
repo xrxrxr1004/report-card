@@ -118,7 +118,7 @@ export default function InternalExamReportUI({ data, onExport, hideExportButton 
                 color: '#ec4899',
                 borderColor: 'border-pink-400',
                 bgColor: 'bg-pink-50',
-                description: '대신고 내신 대비 기출문제 테스트\n- 학교별 출제 경향에 맞춘 시험입니다.'
+                description: '함정을 유발하는 문제들이 많은 시험\n- 문제패턴보다는 지문 속 정확한 근거를 찾아 답과 연결하는 습관을 만드는 것이 중요합니다.'
             }
         };
 
