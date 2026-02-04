@@ -377,9 +377,31 @@ export async function GET(request: Request) {
 
         // 주차 ID 파싱 (예: "2025-12-W2" -> year: 2025, month: 12, week: 2)
         const weekMatch = currentWeekId.match(/(\d{4})-(\d{1,2})-W(\d+)/);
+
+        // 표준 형식이 아닌 경우 (예: "1월", "2월" 등) - 단일 주차 모드로 처리
         if (!weekMatch) {
-            throw new Error(`Invalid weekId format: ${currentWeekId}`);
+            const students = await loadStudents(currentWeekId);
+            const weekConfig = await loadWeekConfig(currentWeekId);
+
+            students.forEach(student => {
+                student.history.forEach(h => {
+                    h.growth = 0;
+                });
+            });
+
+            let reportSettings = { title: '양영학원 고등 영어과', subtitle: '', currentWeekId };
+            if (DATA_SOURCE === 'google_sheets_dynamic') {
+                const settings = await loadSettings();
+                reportSettings = {
+                    title: settings.title || '양영학원 고등 영어과',
+                    subtitle: settings.subtitle || '',
+                    currentWeekId,
+                };
+            }
+
+            return NextResponse.json({ students, settings: reportSettings });
         }
+
         const [, year, month, currentWeek] = weekMatch;
         const yearNum = parseInt(year);
         const monthNum = parseInt(month);
