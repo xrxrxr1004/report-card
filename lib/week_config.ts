@@ -21,6 +21,9 @@ export interface WeekConfig {
         item3?: string;
         item4?: string; // 1월 커리큘럼
         item5?: string; // Week 3-1
+        item6?: string; // Week 4-1
+        item7?: string; // Week 4-2
+        item8?: string; // Week 5-1
     };
 
     // 문법응용 부제 (설명)
@@ -35,6 +38,9 @@ export interface WeekConfig {
         vocab3?: number;
         vocab4?: number; // 1월 커리큘럼
         vocab5?: number; // Week 3-1
+        vocab6?: number; // Week 4-1
+        vocab7?: number; // Week 4-2
+        vocab8?: number; // Week 5-1
     };
 
     // 문법응용 만점 (추가 항목용)
@@ -124,12 +130,12 @@ export const DEFAULT_WEEK_CONFIG: WeekConfig = {
     mockExamSubtitle: "고3 모의고사",
     grammarTheoryThemes: ["시제", "가정법", "분사구문", "준동사"],
     areaWeights: {
-        vocab: 0.2,        // 독해단어 (20%)
-        grammarTheory: 0,  // 문법이론 (0%)
-        grammarApp: 0.2,   // 문법응용 (20%)
-        mockExam: 0.4,     // 모의고사 (40%)
-        internalExam: 0,   // 내신기출 (0%)
-        homework: 0.2,     // 숙제 (20%)
+        vocab: 0.25,        // 독해단어 (25%)
+        grammarTheory: 0.15, // 문법이론 (15%)
+        grammarApp: 0.20,   // 문법응용 (20%)
+        mockExam: 0.25,     // 모의고사 (25%)
+        internalExam: 0.10, // 내신기출 (10%)
+        homework: 0.05,     // 숙제 (5%)
     },
     classMultipliers: {
         "S": 1.3,

@@ -37,6 +37,18 @@ export interface VocabData extends ScoreData {
     max5?: number;
     status5?: string;
     itemName5?: string;
+    score6?: number | null; // Week 4-1
+    max6?: number;
+    status6?: string;
+    itemName6?: string;
+    score7?: number | null; // Week 4-2
+    max7?: number;
+    status7?: string;
+    itemName7?: string;
+    score8?: number | null; // Week 5-1
+    max8?: number;
+    status8?: string;
+    itemName8?: string;
 }
 
 // 2.2 문법이론
@@ -86,6 +98,13 @@ export interface MockExamData extends ScoreData {
         number: number;
         type: string;
     }[];
+    // 다중 모의고사 지원
+    score1?: number | null; // 주간모의고사-3차
+    max1?: number;
+    itemName1?: string;
+    score2?: number | null; // 주간모의고사-4차
+    max2?: number;
+    itemName2?: string;
 }
 
 // 2.6 내신기출 (New)
@@ -167,7 +186,7 @@ export const MANAGED_SCHOOLS = [
 ] as const;
 
 // 2.7 숙제 (New)
-// 2.7 숙제 (New) - refactored for Week 2, Week 3
+// 2.7 숙제 (New) - refactored for Week 2, Week 3, Week 4, Week 5
 export interface HomeworkData extends ScoreData {
     maxScore?: number; // Legacy or total max
     score1?: number | null; // Week 2
@@ -176,6 +195,12 @@ export interface HomeworkData extends ScoreData {
     score2?: number | null; // Week 3
     max2?: number;
     itemName2?: string;
+    score3?: number | null; // Week 4
+    max3?: number;
+    itemName3?: string;
+    score4?: number | null; // Week 5
+    max4?: number;
+    itemName4?: string;
 }
 
 export interface WeeklyReportData {
